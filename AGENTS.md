@@ -14,6 +14,7 @@
 - `docs/`: arquitectura, decisiones, tutoriales, calidad y operación.
 - `tests/`: pruebas unitarias, de integración y fixtures deterministas.
 - `docs/agent-workflows/`: protocolo de delegación, perfiles y ejercicios multiagente.
+- `docs/convencion-commits.md`: formato y reglas para mensajes de commit.
 
 ## Comandos
 
@@ -44,6 +45,7 @@ El protocolo completo está en `docs/agent-workflows/task-protocol.md` y la prá
 - Usar WGS84/SRID 4326 y orden GeoJSON `[longitude, latitude]`.
 - No fabricar nombres, límites municipales, timestamps de fuente ni conteos.
 - Todo cambio de comportamiento requiere actualizar documentación y pruebas.
+- Los commits deben seguir `docs/convencion-commits.md`, usar mensajes en inglés y no incluir trailers de coautoría de Claude.
 - Reportar comandos y resultados reales.
 - No versionar `.env`, secretos, snapshots raw grandes ni artefactos generados.
 

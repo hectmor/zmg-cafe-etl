@@ -1,10 +1,18 @@
 # Tutorial 02: contrato de extracción
 
-Esta etapa está especificada, pero el código se implementará en el siguiente milestone.
+La primera parte de esta etapa ya está implementada con un modo offline determinista. La consulta live está disponible, pero no forma parte de las pruebas automáticas.
 
 ## Contrato
 
-La entrada puede ser una respuesta Overpass live o un fixture offline. La salida deberá conservar el JSON original, registrar fuente, consulta/hash, timestamps y ejecución, y fallar explícitamente ante HTTP errors, JSON mal formado o una estructura sin `elements`.
+La entrada puede ser una respuesta Overpass live o un fixture offline. La salida conserva el JSON original en `data/raw`, registra fuente, consulta/hash, timestamps y ejecución, y falla explícitamente ante errores HTTP, JSON mal formado o una estructura sin `elements`.
+
+Ejecuta el modo offline con:
+
+```bash
+python -m zmg_cafes_etl --offline tests/fixtures/overpass_cafes_sample.json
+```
+
+El comando imprime un resumen JSON con `run_id`, cantidad de objetos y rutas del snapshot y sus metadatos. Para evitar sobrescrituras, cada ejecución genera un nuevo UUID.
 
 ## Criterios de aceptación
 

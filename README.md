@@ -84,9 +84,11 @@ Actualmente existe:
 - documentación de decisiones y limitaciones;
 - workflow multiagente;
 - configuración de Python, pytest y Ruff;
-- pruebas de configuración y del fixture.
+- extractor offline-first con snapshots raw y metadatos;
+- comando CLI para ejecutar la extracción offline;
+- pruebas de configuración, fixture y extracción.
 
-Todavía no están implementados el extractor completo, la transformación, PostGIS, la API ni el frontend.
+Todavía no están implementadas la transformación, PostGIS, la API ni el frontend. La extracción live está preparada, pero no se valida automáticamente contra Overpass.
 
 ## Roadmap
 
@@ -100,7 +102,7 @@ Estudio de OpenStreetMap y Overpass API, consulta `amenity=cafe`, área provisio
 
 ### Fase 2 — Extracción
 
-Extractor HTTP con timeout, reintentos, validación, snapshots raw, metadatos y modo offline.
+Extractor HTTP con timeout, reintentos, validación, snapshots raw, metadatos y modo offline. La extracción offline ya está implementada.
 
 ### Fase 3 — Validación y transformación
 
@@ -148,6 +150,7 @@ uv sync --extra dev
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
+python -m zmg_cafes_etl --offline tests/fixtures/overpass_cafes_sample.json
 ```
 
 El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.json`](tests/fixtures/overpass_cafes_sample.json).
@@ -162,6 +165,7 @@ El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.j
 - [Diccionario de datos](docs/data_dictionary.md)
 - [Decisiones arquitectónicas](docs/decisions/)
 - [Workflow multiagente](docs/agent-workflows/architecture.md)
+- [Convención de commits](docs/convencion-commits.md)
 - [Limitaciones conocidas](docs/limitations.md)
 
 ## Autor
