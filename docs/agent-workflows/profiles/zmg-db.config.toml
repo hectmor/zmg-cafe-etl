@@ -1,0 +1,5 @@
+# Copy to $CODEX_HOME/zmg-db.config.toml only when explicitly choosing this profile.
+# Role instructions live in ../agents/database-engineer.md; this file is CLI configuration only.
+model_reasoning_effort = "medium"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"

@@ -1,0 +1,5 @@
+# Copy to $CODEX_HOME/zmg-qa.config.toml only when explicitly choosing this profile.
+# Role instructions live in ../agents/qa-data-quality-engineer.md; this file is CLI configuration only.
+model_reasoning_effort = "low"
+approval_policy = "on-request"
+sandbox_mode = "read-only"

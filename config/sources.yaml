@@ -1,0 +1,33 @@
+version: 1
+
+study_area:
+  name: "ZMG provisional initial extraction area"
+  definition: >-
+    Bounding box de desarrollo explícitamente provisional; no equivale por sí
+    mismo a una delimitación estadística oficial de la Zona Metropolitana de Guadalajara.
+  bbox:
+    south: 20.52
+    west: -103.55
+    north: 20.82
+    east: -103.15
+  coordinate_reference_system: "EPSG:4326"
+
+sources:
+  - name: openstreetmap
+    provider: OpenStreetMap contributors
+    access_method: overpass_api
+    endpoint: "https://overpass-api.de/api/interpreter"
+    query_template: |
+      [out:json][timeout:25];
+      (
+        nwr[amenity=cafe]({south},{west},{north},{east});
+      );
+      out center tags;
+    query_parameters:
+      amenity: cafe
+    attribution: "© OpenStreetMap contributors"
+    license: "Open Database License (ODbL)"
+    object_identity: "source + object_type + object_id"
+    timeout_seconds: 30
+    max_retries: 2
+    retry_backoff_seconds: 2

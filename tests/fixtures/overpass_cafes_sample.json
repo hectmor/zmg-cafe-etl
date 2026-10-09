@@ -1,0 +1,27 @@
+{
+  "version": 0.6,
+  "generator": "fixture-only",
+  "osm3s": {"timestamp_osm_base": "2026-01-15T00:00:00Z", "copyright": "fixture"},
+  "elements": [
+    {
+      "type": "node",
+      "id": 1001,
+      "lat": 20.6736,
+      "lon": -103.344,
+      "tags": {"amenity": "cafe", "name": "Café Centro", "cuisine": "coffee_shop"}
+    },
+    {
+      "type": "way",
+      "id": 2002,
+      "center": {"lat": 20.6597, "lon": -103.3496},
+      "tags": {"amenity": "cafe", "name": "Café Jardín", "addr:city": "Guadalajara"}
+    },
+    {
+      "type": "node",
+      "id": 1003,
+      "lat": 20.70,
+      "lon": -103.36,
+      "tags": {"amenity": "cafe"}
+    }
+  ]
+}

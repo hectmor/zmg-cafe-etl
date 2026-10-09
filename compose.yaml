@@ -1,0 +1,3 @@
+# This checkpoint intentionally has no services yet. PostGIS will be added
+# together with the data contract and migration in the database milestone.
+services: {}
