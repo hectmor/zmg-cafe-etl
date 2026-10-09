@@ -1,12 +1,14 @@
 # Roadmap y definición de terminado
 
+El estado operativo detallado y el punto de reanudación están en [milestones.md](milestones.md).
+
 ## Milestones
 
 | Milestone | Entregable | Estado |
 |---|---|---|
-| 0 | Fundación, convenciones, arquitectura y configuración | En progreso |
-| 1 | Fuente Overpass, contrato y extracción offline/live | Siguiente |
-| 2 | Validación y transformación con rechazados | Planeado |
+| 0 | Fundación, convenciones, arquitectura y configuración | Completado |
+| 1 | Fuente Overpass, contrato y extracción offline/live | Completado |
+| 2 | Validación y transformación con rechazados | Siguiente |
 | 3 | PostGIS, migraciones y carga idempotente | Planeado |
 | 4 | API FastAPI y contrato GeoJSON | Planeado |
 | 5 | Frontend Leaflet | Planeado |

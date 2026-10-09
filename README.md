@@ -159,6 +159,7 @@ El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.j
 
 - [Especificación del proyecto](docs/project-spec.md)
 - [Roadmap detallado](docs/roadmap.md)
+- [Milestones y punto de reanudación](docs/milestones.md)
 - [Arquitectura](docs/architecture/overview.md)
 - [Flujo de datos](docs/architecture/data_flow.md)
 - [Fuentes de datos](docs/data_sources.md)
