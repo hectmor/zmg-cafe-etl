@@ -1,6 +1,7 @@
 """Load and validate non-secret project configuration."""
 
 from dataclasses import dataclass
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -61,15 +62,21 @@ def load_source_config(config_path: Path, source_name: str = "openstreetmap") ->
         source_data = next(
             source for source in document["sources"] if source["name"] == source_name
         )
+        timeout_seconds = float(source_data["timeout_seconds"])
+        max_retries = int(source_data["max_retries"])
+        retry_backoff_seconds = float(source_data["retry_backoff_seconds"])
+        _validate_request_settings(timeout_seconds, max_retries, retry_backoff_seconds)
         return SourceConfig(
             name=source_data["name"],
             endpoint=source_data["endpoint"],
             query_template=source_data["query_template"],
-            timeout_seconds=float(source_data["timeout_seconds"]),
-            max_retries=int(source_data["max_retries"]),
-            retry_backoff_seconds=float(source_data["retry_backoff_seconds"]),
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+            retry_backoff_seconds=retry_backoff_seconds,
             study_area=bbox,
         )
+    except ConfigurationError:
+        raise
     except (KeyError, StopIteration, TypeError, ValueError) as error:
         raise ConfigurationError(
             f"Invalid or missing configuration for source: {source_name}"
@@ -81,6 +88,17 @@ def _validate_bbox(bbox: BoundingBox) -> None:
         raise ConfigurationError("Bounding box latitude values are invalid")
     if not (-180 <= bbox.west < bbox.east <= 180):
         raise ConfigurationError("Bounding box longitude values are invalid")
+
+
+def _validate_request_settings(
+    timeout_seconds: float, max_retries: int, retry_backoff_seconds: float
+) -> None:
+    if not isfinite(timeout_seconds) or timeout_seconds <= 0:
+        raise ConfigurationError("Source timeout must be a positive finite number")
+    if max_retries < 0:
+        raise ConfigurationError("Source max retries cannot be negative")
+    if not isfinite(retry_backoff_seconds) or retry_backoff_seconds < 0:
+        raise ConfigurationError("Source retry backoff must be a non-negative finite number")
 
 
 def render_query(source_config: SourceConfig) -> str:

@@ -21,4 +21,6 @@
 
 Un registro sin nombre puede ser válido con `accepted_with_warning`. Un registro sin identidad o coordenadas válidas no puede entrar a la capa analítica inicial. `outside_study_area` es un rechazo de alcance, no una coordenada malformada. El snapshot raw conserva también objetos rechazados.
 
+La deduplicación conserva el primer elemento recibido para cada `source_id` y rechaza los posteriores con `duplicate_source_identity`; por eso el resultado es determinista para un mismo payload ordenado.
+
 Razones iniciales: `malformed_response`, `missing_object_type`, `missing_object_id`, `invalid_object_id`, `missing_coordinates`, `invalid_latitude`, `invalid_longitude`, `missing_way_or_relation_center`, `unsupported_geometry`, `outside_study_area` y `duplicate_source_identity`.

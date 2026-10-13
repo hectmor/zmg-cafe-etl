@@ -50,7 +50,7 @@ También pretende enseñar cómo funciona un proceso ETL, cómo se extraen datos
 
 - **PostgreSQL:** base de datos relacional.
 - **PostGIS:** extensión espacial de PostgreSQL.
-- **Alembic:** migraciones de base de datos.
+- **Flyway:** migraciones de base de datos versionadas en SQL.
 - **GeoJSON:** intercambio de geometrías entre API y frontend.
 
 ### Backend y frontend
@@ -73,22 +73,7 @@ No se incorporarán frameworks frontend, sistemas distribuidos, orquestadores o 
 
 ## Estado actual
 
-El proyecto se encuentra en la etapa de fundación y diseño del contrato de datos.
-
-Actualmente existe:
-
-- arquitectura inicial;
-- configuración de OpenStreetMap/Overpass;
-- contrato inicial de datos normalizados;
-- fixture offline determinista;
-- documentación de decisiones y limitaciones;
-- workflow multiagente;
-- configuración de Python, pytest y Ruff;
-- extractor offline-first con snapshots raw y metadatos;
-- comando CLI para ejecutar la extracción offline;
-- pruebas de configuración, fixture y extracción.
-
-Todavía no están implementadas la transformación, PostGIS, la API ni el frontend. La extracción live está preparada, pero no se valida automáticamente contra Overpass.
+M1 extracción, M2 transformación y M3 PostgreSQL/PostGIS están completados. M3 incluye PostgreSQL 17, PostGIS y Flyway en Compose. La carga idempotente/pipeline es el siguiente milestone; la API y el frontend siguen pendientes. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
 
 ## Roadmap
 
@@ -110,7 +95,7 @@ Normalización de objetos `node`, `way` y `relation`, identidades estables, vali
 
 ### Fase 4 — PostgreSQL y PostGIS
 
-Docker Compose, esquemas `raw`, `staging`, `analytics` y `meta`, migraciones Alembic, constraints e índices espaciales.
+Docker Compose, esquemas `raw`, `staging`, `analytics` y `meta`, migraciones Flyway, constraints e índices espaciales.
 
 ### Fase 5 — Carga idempotente
 
@@ -160,8 +145,10 @@ El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.j
 - [Especificación del proyecto](docs/project-spec.md)
 - [Roadmap detallado](docs/roadmap.md)
 - [Milestones y punto de reanudación](docs/milestones.md)
+- [Handoff para continuar el desarrollo](docs/handoff.md)
 - [Arquitectura](docs/architecture/overview.md)
 - [Flujo de datos](docs/architecture/data_flow.md)
+- [Base de datos y migraciones](docs/database.md)
 - [Fuentes de datos](docs/data_sources.md)
 - [Diccionario de datos](docs/data_dictionary.md)
 - [Decisiones arquitectónicas](docs/decisions/)

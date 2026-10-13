@@ -8,12 +8,13 @@ El estado operativo detallado y el punto de reanudación están en [milestones.m
 |---|---|---|
 | 0 | Fundación, convenciones, arquitectura y configuración | Completado |
 | 1 | Fuente Overpass, contrato y extracción offline/live | Completado |
-| 2 | Validación y transformación con rechazados | Siguiente |
-| 3 | PostGIS, migraciones y carga idempotente | Planeado |
-| 4 | API FastAPI y contrato GeoJSON | Planeado |
-| 5 | Frontend Leaflet | Planeado |
-| 6 | Compose reproducible, integración y CI | Planeado |
-| 7 | Observabilidad y hardening | Planeado |
+| 2 | Validación y transformación con rechazados | Completado |
+| 3 | PostGIS y migraciones Flyway | Completado |
+| 4 | Carga idempotente y pipeline | Siguiente |
+| 5 | API FastAPI y contrato GeoJSON | Planeado |
+| 6 | Frontend Leaflet | Planeado |
+| 7 | Compose reproducible, integración y CI | Planeado |
+| 8 | Observabilidad y hardening | Planeado |
 
 ## Definition of Done
 

@@ -22,6 +22,12 @@
       "lat": 20.70,
       "lon": -103.36,
       "tags": {"amenity": "cafe"}
+    },
+    {
+      "type": "relation",
+      "id": 3003,
+      "center": {"lat": 20.68, "lon": -103.35},
+      "tags": {"amenity": "cafe", "name": "Café Plaza"}
     }
   ]
 }

@@ -7,9 +7,9 @@ Este archivo es el punto de continuidad del proyecto. Cada milestone debe dejar 
 ```text
 M0 Fundación                 COMPLETADO
 M1 Contrato y extracción    COMPLETADO
-M2 Transformación y calidad SIGUIENTE
-M3 PostgreSQL/PostGIS       PENDIENTE
-M4 Carga idempotente        PENDIENTE
+M2 Transformación y calidad COMPLETADO
+M3 PostgreSQL/PostGIS       COMPLETADO
+M4 Carga idempotente        SIGUIENTE
 M5 API FastAPI              PENDIENTE
 M6 Frontend Leaflet         PENDIENTE
 M7 Compose e integración    PENDIENTE
@@ -36,11 +36,11 @@ python -m zmg_cafes_etl \
   --raw-root /tmp/zmg-cafes-raw
 ```
 
-Validación: Ruff OK, formato OK, 9 pruebas exitosas. La extracción live todavía no se ha ejecutado contra Overpass.
+Validación registrada al cerrar M1: Ruff OK, formato OK y 9 pruebas exitosas. La extracción live todavía no se ha ejecutado contra Overpass; sus solicitudes se cubren con pruebas simuladas.
 
 ## M2 — Transformación y calidad de datos
 
-**Estado:** siguiente milestone.
+**Estado:** completado.
 
 Objetivo: convertir objetos raw de Overpass en registros normalizados y separar aceptados, advertencias y rechazados.
 
@@ -76,11 +76,17 @@ Criterios de aceptación:
 - cada rechazado conserva una razón inspeccionable;
 - todas las pruebas, Ruff y formato pasan.
 
+Validación al cerrar M2: Ruff OK, formato OK y 31 pruebas exitosas sin Internet. La transformación se expone como biblioteca; su persistencia y orquestación CLI forman parte de los milestones posteriores.
+
 ## M3 — PostgreSQL y PostGIS
 
-**Estado:** pendiente de M2.
+**Estado:** completado.
 
-Crear schemas, migraciones Alembic, constraints, claves únicas, geometría `Point SRID 4326` e índices GiST.
+Crear schemas, migraciones Flyway, constraints, claves únicas, geometría `Point SRID 4326` e índices GiST.
+
+Entregables: Compose con PostgreSQL 17/PostGIS y Flyway, migración `V1__initial_geospatial_schema.sql`, schemas `meta`, `raw`, `staging` y `analytics`, constraints del contrato normalizado e índices espaciales GiST.
+
+Validación: Flyway aplicó y verificó la versión 1 en PostgreSQL 17.5; las geometrías de staging y analytics usan SRID 4326 y sus índices GiST existen. Ruff OK, formato OK y 33 pruebas exitosas. El puerto 5432 y 5433 estaban ocupados localmente; la comprobación se hizo con `POSTGRES_PORT=0`, que asigna un puerto aleatorio al host.
 
 ## M4 — Carga idempotente y pipeline
 
@@ -114,14 +120,13 @@ Agregar observabilidad ligera, frescura, rendimiento, respaldo, recuperación y 
 
 ## Punto de reanudación
 
-Para continuar desde otra laptop:
+Para continuar el desarrollo:
 
 ```bash
-git clone https://github.com/hectmor/zmg-cafe-etl.git
-cd zmg-cafe-etl
-conda activate zmg-cafe
-python -m pip install -r requirements.txt
-pytest
+uv sync --extra dev
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest
 ```
 
-La siguiente tarea es **M2 — Transformación y calidad de datos**. Antes de editar, leer `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md`, este archivo, `config/sources.yaml` y `src/zmg_cafes_etl/extract.py`.
+La siguiente tarea es **M4 — Carga idempotente y pipeline**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md`, `docs/database.md`, la migración inicial y `src/zmg_cafes_etl/{extract,transform,models}.py`.

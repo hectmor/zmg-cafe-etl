@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import mkstemp
 from typing import Any
 from uuid import uuid4
 
@@ -75,7 +78,7 @@ def extract_live(
     """Request Overpass data with bounded retries and preserve the response."""
 
     query = render_query(source_config)
-    body = query.encode("utf-8")
+    body = urllib.parse.urlencode({"data": query}).encode("utf-8")
     attempts = source_config.max_retries + 1
     last_error: Exception | None = None
 
@@ -140,7 +143,7 @@ def _build_result(
         raise ExtractionError(f"Refusing to overwrite existing raw run: {resolved_run_id}")
 
     raw_path.parent.mkdir(parents=True, exist_ok=True)
-    raw_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    raw_content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     metadata = {
         "run_id": resolved_run_id,
         "source": source_config.name,
@@ -151,8 +154,12 @@ def _build_result(
         "object_count": len(payload["elements"]),
         "snapshot_path": str(raw_path),
     }
-    metadata_path.write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    metadata_content = json.dumps(metadata, ensure_ascii=False, indent=2) + "\n"
+    _write_snapshot_pair(
+        raw_path=raw_path,
+        raw_content=raw_content,
+        metadata_path=metadata_path,
+        metadata_content=metadata_content,
     )
     return ExtractionResult(
         run_id=resolved_run_id,
@@ -171,6 +178,37 @@ def _snapshot_paths(
 ) -> tuple[Path, Path]:
     partition = raw_root / source / retrieved_at.strftime("%Y/%m/%d")
     return partition / f"{run_id}.json", partition / f"{run_id}.metadata.json"
+
+
+def _write_snapshot_pair(
+    *, raw_path: Path, raw_content: str, metadata_path: Path, metadata_content: str
+) -> None:
+    raw_temporary_path = _write_temporary_file(raw_path, raw_content)
+    metadata_temporary_path = _write_temporary_file(metadata_path, metadata_content)
+    raw_published = False
+    try:
+        os.link(raw_temporary_path, raw_path)
+        raw_published = True
+        os.link(metadata_temporary_path, metadata_path)
+    except FileExistsError as error:
+        if raw_published:
+            raw_path.unlink()
+        raise ExtractionError(f"Refusing to overwrite existing raw run: {raw_path.stem}") from error
+    except OSError as error:
+        if raw_published:
+            raw_path.unlink()
+        raise ExtractionError(f"Could not preserve raw run: {raw_path.stem}") from error
+    finally:
+        raw_temporary_path.unlink(missing_ok=True)
+        metadata_temporary_path.unlink(missing_ok=True)
+
+
+def _write_temporary_file(destination: Path, content: str) -> Path:
+    descriptor, temporary_name = mkstemp(prefix=f".{destination.name}.", dir=destination.parent)
+    temporary_path = Path(temporary_name)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as temporary_file:
+        temporary_file.write(content)
+    return temporary_path
 
 
 def _validate_payload(payload: Any) -> None:

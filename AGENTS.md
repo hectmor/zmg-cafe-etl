@@ -26,7 +26,7 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-Cuando existan migraciones, deben ejecutarse con Alembic y nunca mediante SQL manual no rastreado.
+Cuando existan migraciones, deben ejecutarse con Flyway y nunca mediante SQL manual no rastreado.
 
 ## Coordinación multiagente
 
