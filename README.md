@@ -159,6 +159,23 @@ python -m http.server 8080 --directory frontend
 
 Abre `http://localhost:8080` en el navegador. El mapa consulta `/geojson/cafes`, permite buscar por nombre, filtrar por tipo de objeto y ver el detalle de cada café en el marcador.
 
+### Stack completo con Docker Compose
+
+El pipeline completo (base, migraciones, API y frontend) se levanta de forma reproducible con Compose. Usa `POSTGRES_PORT=0` si otra base ocupa el puerto 5432 del host: Docker asigna un puerto aleatorio a `db` mientras los servicios se comunican internamente por `db:5432`.
+
+```bash
+POSTGRES_PORT=0 docker compose up -d db api frontend
+POSTGRES_PORT=0 docker compose --profile migrate run --rm flyway
+POSTGRES_PORT=0 docker compose --profile etl run --rm etl
+```
+
+1. `db` (PostGIS), `api` (puerto 8000) y `frontend` (puerto 8080) arrancan en orden gracias a los healthchecks.
+2. El perfil `migrate` aplica las migraciones Flyway de `db/migrations` sobre la base del stack; es idempotente y puede repetirse.
+3. El perfil `etl` ejecuta el pipeline contra el stack: por defecto lee el fixture determinista y persiste el resultado en `analytics` (los snapshots raw quedan en `data/raw/`). Para el modo live: `POSTGRES_PORT=0 docker compose --profile etl run --rm etl python -m zmg_cafes_etl --live`.
+4. Verifica con `curl http://localhost:8000/health`, `curl http://localhost:8000/stats` y abriendo `http://localhost:8080`.
+
+Para detener sin borrar datos: `docker compose stop`. No ejecutes `docker compose down -v` si quieres conservar el volumen `postgres_data`.
+
 El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.json`](tests/fixtures/overpass_cafes_sample.json).
 
 ## Documentación relacionada
