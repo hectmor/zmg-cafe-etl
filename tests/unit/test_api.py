@@ -78,6 +78,15 @@ def test_health_reports_service_unavailable_when_the_database_is_down() -> None:
     assert response.json()["detail"] == "database is unreachable"
 
 
+def test_api_allows_the_documented_frontend_origin() -> None:
+    response = _client(FakeStore([_row()])).get(
+        "/health", headers={"Origin": "http://localhost:8080"}
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:8080"
+
+
 def test_list_cafes_returns_total_limit_offset_and_items() -> None:
     rows = [_row(source_id=f"openstreetmap:node:{index}", object_id=index) for index in range(3)]
     response = _client(FakeStore(rows)).get("/cafes", params={"limit": 2, "offset": 1})

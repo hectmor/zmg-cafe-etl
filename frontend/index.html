@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cafés de la Zona Metropolitana de Guadalajara</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Cafés de la Zona Metropolitana de Guadalajara</h1>
+    <p class="subtitle">
+      Datos públicos de OpenStreetMap consultados vía Overpass · Proyecto educativo ZMG Cafés ETL
+    </p>
+  </header>
+
+  <aside id="panel">
+    <label for="search">Buscar por nombre</label>
+    <input id="search" type="search" placeholder="Ej. Café Centro" autocomplete="off">
+
+    <label for="type-filter">Tipo de objeto</label>
+    <select id="type-filter">
+      <option value="">Todos</option>
+      <option value="node">node</option>
+      <option value="way">way</option>
+      <option value="relation">relation</option>
+    </select>
+
+    <p id="status" role="status" aria-live="polite">Cargando cafés…</p>
+    <p id="count"></p>
+  </aside>
+
+  <main id="map" role="application" aria-label="Mapa de cafés de la Zona Metropolitana de Guadalajara"></main>
+
+  <footer>
+    <p>
+      © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+      contributors · Fuente de datos: Overpass API ·
+      Elaborado con <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a> ·
+      ZMG Cafés ETL
+    </p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

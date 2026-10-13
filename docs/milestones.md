@@ -11,8 +11,8 @@ M2 Transformación y calidad COMPLETADO
 M3 PostgreSQL/PostGIS       COMPLETADO
 M4 Carga idempotente        COMPLETADO
 M5 API FastAPI              COMPLETADO
-M6 Frontend Leaflet         SIGUIENTE
-M7 Compose e integración    PENDIENTE
+M6 Frontend Leaflet         COMPLETADO
+M7 Compose e integración    SIGUIENTE
 M8 Hardening profesional    PENDIENTE
 ```
 
@@ -110,13 +110,17 @@ Validación al cerrar M5: Ruff OK, formato OK y 60 pruebas exitosas — 47 sin B
 
 ## M6 — Frontend Leaflet
 
-**Estado:** siguiente milestone.
+**Estado:** completado.
 
 Implementar mapa, búsqueda, filtros, marcadores, estados de carga/error y atribución.
 
+Entregables: cliente estático en `frontend/` (`index.html`, `app.js`, `style.css`) sin frameworks ni build, mapa Leaflet centrado en la ZMG, carga desde `/geojson/cafes`, búsqueda por nombre, filtro por `object_type`, marcadores con popup (nombre, identidad, método de geometría y tags), estados de carga/listo/error con mensaje accedible y atribución de OpenStreetMap, Overpass y Leaflet. La API habilita CORS para el origen `http://localhost:8080`.
+
+Validación al cerrar M6: Ruff OK, formato OK y 67 pruebas exitosas — 54 sin BD (incluidas 6 estructurales del frontend y la prueba de CORS) y 13 de integración contra PostGIS. Smoke test servido real: `http.server 8080 --directory frontend` entrega `index.html` y `app.js`, y la API responde con `access-control-allow-origin: http://localhost:8080` y GeoJSON `[-103.344, 20.6736]`. Limitación: el renderizado en navegador (teselas, popups) no se verificó con navegador automatizado.
+
 ## M7 — Compose, integración y CI
 
-**Estado:** pendiente de M4 y M5.
+**Estado:** siguiente milestone.
 
 Agregar servicios reproducibles, pruebas de integración, migraciones en CI y validación de instalación limpia.
 
@@ -137,4 +141,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-La siguiente tarea es **M6 — Frontend Leaflet**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md` y la capa `api/`. El frontend consume solo la API (`/cafes`, `/geojson/cafes`, `/stats`, `/health`) y no accede a la base. Para ejecutar las pruebas de integración define `ZMG_TEST_DATABASE_URL` apuntando a PostgreSQL/PostGIS local.
+La siguiente tarea es **M7 — Compose, integración y CI**. Lee primero `docs/handoff.md`, `AGENTS.md`, `compose.yaml`, `docs/database.md` y la capa `api/`. El alcance es servicios reproducibles, pruebas de integración, migraciones en CI y validación de instalación limpia; no agregues funcionalidad a ETL, API ni frontend. Para ejecutar las pruebas de integración define `ZMG_TEST_DATABASE_URL` apuntando a PostgreSQL/PostGIS local.
