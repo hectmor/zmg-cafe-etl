@@ -9,7 +9,7 @@ Este documento describe el estado del checkout y la tarea concreta para el sigui
 - M3 base de datos: implementada y aplicada con Flyway 13.6.0 sobre PostgreSQL 17.5/PostGIS. La versión 1 crea schemas/tablas, constraints y los dos índices GiST.
 - M4 carga/pipeline: implementada. `load_run` persiste cada ejecución en una transacción (`meta.pipeline_runs`, `raw.overpass_snapshots`, staging completo y solo aceptados en analytics) con upsert idempotente por `source_id`. La migración `V2__partial_unique_accepted_identity.sql` permite auditar duplicados rechazados sin romper la unicidad de aceptados. El CLI acepta `--database-url` y reporta métricas.
 - M5 API FastAPI: implementada. El paquete `api/` (separado del ETL) expone solo la capa `analytics` con `GET /health`, `GET /cafes` (paginado), `GET /cafes/{source_id}`, `GET /geojson/cafes` y `GET /stats`. Se sirve con `python -m uvicorn api.main:app` usando `DATABASE_URL`.
-- Frontend: pendiente.
+- M6 frontend Leaflet: implementado. `frontend/` es un cliente estático sin frameworks: mapa de la ZMG, búsqueda por nombre, filtro por `object_type`, marcadores con popup, estados de carga/error y atribución de OpenStreetMap/Overpass/Leaflet. Consume solo la API; se sirve con `python -m http.server 8080 --directory frontend` y la API habilita CORS para ese origen.
 
 Los milestones están commiteados por fase en ramas con PR a `develop`.
 
@@ -23,7 +23,7 @@ conda run -n zmg-cafe python -m ruff format --check .
 conda run -n zmg-cafe env PYTHONPATH=src python -m pytest
 ```
 
-Resultado al cerrar M5: Ruff OK, formato OK, 60 pruebas aprobadas (47 sin BD y 13 de integración contra PostGIS), `git diff --check` OK y Flyway 13.6.0 con las versiones 1 y 2 aplicadas. Instalar/ejecutar con Python 3.12 o 3.13 sigue pendiente.
+Resultado al cerrar M6: Ruff OK, formato OK, 67 pruebas aprobadas (54 sin BD y 13 de integración contra PostGIS), `git diff --check` OK y Flyway 13.6.0 con las versiones 1 y 2 aplicadas. Instalar/ejecutar con Python 3.12 o 3.13 sigue pendiente. El renderizado del frontend en navegador no se verificó con automatización; solo se probó por HTTP.
 
 Las pruebas de integración en `tests/integration/` limpian los cuatro schemas antes de cada prueba; requieren una base de desarrollo accesible vía `ZMG_TEST_DATABASE_URL` y se omiten si la variable no está definida:
 
@@ -47,12 +47,12 @@ Las migraciones están en `db/migrations` y Flyway es el único migrador permiti
 - La geometría se construye en SQL como `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`; GeoJSON y PostGIS usan longitud antes que latitud.
 - Desde V2, la unicidad de `(run_id, source_id)` en staging solo aplica a `accepted`/`accepted_with_warning` (índice `staging_run_accepted_identity`); los duplicados rechazados se conservan como filas propias.
 
-## Tarea y aceptación para M6
+## Tarea y aceptación para M7
 
-1. Implementar el cliente Leaflet en `frontend/`: mapa, búsqueda, filtros, marcadores, estados de carga/error y atribución de la fuente.
-2. Consumir únicamente los endpoints de la API (`/health`, `/cafes`, `/cafes/{source_id}`, `/geojson/cafes`, `/stats`); sin acceso directo a la base.
-3. Respetar WGS84/SRID 4326 y el orden GeoJSON `[longitude, latitude]` que ya entrega la API.
-4. Documentar cómo servir el frontend contra la API local y actualizar `README.md` y `docs/milestones.md`.
-5. No expandir M6 a CI (M7) ni hardening (M8).
+1. Completar `compose.yaml` para levantar el pipeline completo de forma reproducible (base, migraciones, API y frontend según aplique).
+2. Automatizar pruebas de integración y migraciones Flyway en CI.
+3. Validar la instalación limpia desde un checkout nuevo siguiendo la documentación.
+4. Documentar los comandos operativos y actualizar `README.md` y `docs/milestones.md`.
+5. No expandir M7 a observabilidad ni hardening (M8).
 
 No agregar Alembic. Usa SQL versionado por Flyway para cambios de esquema y respeta el contrato de `docs/data_dictionary.md`.

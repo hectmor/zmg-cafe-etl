@@ -73,7 +73,7 @@ No se incorporarán frameworks frontend, sistemas distribuidos, orquestadores o 
 
 ## Estado actual
 
-M1 extracción, M2 transformación, M3 PostgreSQL/PostGIS, M4 carga idempotente y M5 API FastAPI están completados. La carga escribe cada ejecución en una transacción sobre PostgreSQL 17/PostGIS con Flyway y upsert idempotente en la capa analítica; el CLI acepta `--database-url` para persistir. La API expone solo la capa `analytics` con health, consulta paginada, detalle, estadísticas y GeoJSON. El frontend sigue pendiente. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
+M1 extracción, M2 transformación, M3 PostgreSQL/PostGIS, M4 carga idempotente, M5 API FastAPI y M6 frontend Leaflet están completados. La carga escribe cada ejecución en una transacción sobre PostgreSQL 17/PostGIS con Flyway y upsert idempotente en la capa analítica; el CLI acepta `--database-url` para persistir. La API expone solo la capa `analytics` con health, consulta paginada, detalle, estadísticas y GeoJSON. El frontend consumible desde el navegador muestra el mapa, búsqueda, filtros, marcadores, estados de carga/error y atribución. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
 
 ## Roadmap
 
@@ -150,6 +150,14 @@ DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:5432/zmg_cafes \
 ```
 
 Endpoints: `GET /health`, `GET /cafes` (paginado con `limit`/`offset`), `GET /cafes/{source_id}`, `GET /geojson/cafes` (FeatureCollection con coordenadas `[longitude, latitude]`) y `GET /stats`.
+
+Para usar el frontend Leaflet, sirve la API como arriba y los archivos estáticos de `frontend/` en el puerto 8080 (origen permitido por CORS):
+
+```bash
+python -m http.server 8080 --directory frontend
+```
+
+Abre `http://localhost:8080` en el navegador. El mapa consulta `/geojson/cafes`, permite buscar por nombre, filtrar por tipo de objeto y ver el detalle de cada café en el marcador.
 
 El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.json`](tests/fixtures/overpass_cafes_sample.json).
 
