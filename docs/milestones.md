@@ -173,4 +173,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-M8 — Hardening profesional está completo (issues #40-#44, PRs #46-#48 y este). Queda abierto el issue #49 (`analytics.cafes` no retira cafés desaparecidos de la fuente), encontrado durante M8.4 pero fuera de su alcance. Todavía no hay un milestone M9 definido; antes de abrir uno nuevo, revisa `docs/roadmap.md` y decide con el Lead si el siguiente paso es #49, cerrar la deuda de `docs/agent-workflows/` (#18, #19) o un alcance nuevo.
+M8 — Hardening profesional está completo (issues #40-#44, PRs #46-#48 y #50). El issue #49 (`analytics.cafes` no retira cafés desaparecidos de la fuente), encontrado durante M8.4 pero fuera de su alcance, quedó resuelto por ADR-006 (hard delete dentro de `load_run`). Todavía no hay un milestone M9 definido; antes de abrir uno nuevo, revisa `docs/roadmap.md` y decide con el Lead si el siguiente paso es cerrar la deuda de `docs/agent-workflows/` (#18, #19) o un alcance nuevo.

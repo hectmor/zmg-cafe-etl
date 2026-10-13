@@ -25,6 +25,7 @@ class LoadMetrics:
     rejected: int
     inserted: int
     updated: int
+    retired: int
 
     def as_dict(self) -> dict[str, int]:
         """Return the metrics as a JSON-serializable mapping."""
@@ -34,8 +35,11 @@ class LoadMetrics:
             "rejected": self.rejected,
             "inserted": self.inserted,
             "updated": self.updated,
+            "retired": self.retired,
         }
 
+
+_LOCK_SOURCE = "SELECT pg_advisory_xact_lock(hashtext(%(lock_key)s))"
 
 _INSERT_PIPELINE_RUN = """
 INSERT INTO meta.pipeline_runs (run_id, source, retrieved_at, status)
@@ -107,6 +111,12 @@ SET source = EXCLUDED.source,
 RETURNING (xmax = 0) AS inserted
 """
 
+_RETIRE_ABSENT_ANALYTICS = """
+DELETE FROM analytics.cafes
+WHERE source = %(source)s
+  AND NOT (source_id = ANY(%(current_source_ids)s::text[]))
+"""
+
 _COMPLETE_RUN = """
 UPDATE meta.pipeline_runs
 SET status = 'completed', completed_at = CURRENT_TIMESTAMP
@@ -153,9 +163,14 @@ def load_run(
     rejected = transformation.rejected
     inserted = 0
     updated = 0
+    retired = 0
     try:
         with psycopg.connect(normalize_dsn(dsn)) as connection:
             with connection.cursor() as cursor:
+                cursor.execute(
+                    _LOCK_SOURCE,
+                    {"lock_key": f"zmg_cafes_etl.load_run:{extraction.source}"},
+                )
                 cursor.execute(
                     _INSERT_PIPELINE_RUN,
                     {
@@ -184,6 +199,20 @@ def load_run(
                         inserted += 1
                     else:
                         updated += 1
+                current_source_ids = [record.source_id for record in accepted]
+                if current_source_ids:
+                    cursor.execute(
+                        _RETIRE_ABSENT_ANALYTICS,
+                        {"source": extraction.source, "current_source_ids": current_source_ids},
+                    )
+                    retired = cursor.rowcount
+                else:
+                    retired = 0
+                    logger.warning(
+                        "load_run retirement skipped run_id=%s source=%s reason=no_accepted_records",
+                        extraction.run_id,
+                        extraction.source,
+                    )
                 cursor.execute(_COMPLETE_RUN, {"run_id": extraction.run_id})
     except psycopg.Error as error:
         logger.error(
@@ -198,14 +227,16 @@ def load_run(
         rejected=len(rejected),
         inserted=inserted,
         updated=updated,
+        retired=retired,
     )
     logger.info(
-        "load_run completed run_id=%s accepted=%d rejected=%d inserted=%d updated=%d",
+        "load_run completed run_id=%s accepted=%d rejected=%d inserted=%d updated=%d retired=%d",
         extraction.run_id,
         metrics.accepted,
         metrics.rejected,
         metrics.inserted,
         metrics.updated,
+        metrics.retired,
     )
     return metrics
 

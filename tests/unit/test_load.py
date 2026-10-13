@@ -67,8 +67,14 @@ def test_normalize_dsn_keeps_plain_postgresql_dsn() -> None:
 
 
 def test_load_metrics_are_json_serializable() -> None:
-    metrics = LoadMetrics(accepted=2, rejected=1, inserted=2, updated=0)
-    assert metrics.as_dict() == {"accepted": 2, "rejected": 1, "inserted": 2, "updated": 0}
+    metrics = LoadMetrics(accepted=2, rejected=1, inserted=2, updated=0, retired=0)
+    assert metrics.as_dict() == {
+        "accepted": 2,
+        "rejected": 1,
+        "inserted": 2,
+        "updated": 0,
+        "retired": 0,
+    }
 
 
 def test_load_run_rejects_records_from_another_run() -> None:

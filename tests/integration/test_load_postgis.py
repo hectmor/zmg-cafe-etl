@@ -4,10 +4,13 @@ Every test truncates the four project schemas first so the assertions stay
 deterministic across repeated runs against the same database.
 """
 
+import json
 import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+from uuid import uuid4
 
 import psycopg
 import pytest
@@ -29,6 +32,10 @@ FIXTURE_PATH = ROOT / "tests/fixtures/overpass_cafes_sample.json"
 CONFIG_PATH = ROOT / "config/sources.yaml"
 
 DATABASE_URL = os.environ.get("ZMG_TEST_DATABASE_URL")
+
+# "Café Centro" in tests/fixtures/overpass_cafes_sample.json: a node, id 1001.
+CAFE_CENTRO_OBJECT_ID = 1001
+CAFE_CENTRO_SOURCE_ID = "openstreetmap:node:1001"
 
 pytestmark = pytest.mark.skipif(
     DATABASE_URL is None,
@@ -69,6 +76,45 @@ def _row(statement: str, params: dict[str, object]) -> tuple[object, ...] | None
         with connection.cursor() as cursor:
             cursor.execute(statement, params)
             return cursor.fetchone()
+
+
+def _load_fixture_payload() -> dict[str, Any]:
+    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
+def _without_cafe_centro(payload: dict[str, Any]) -> dict[str, Any]:
+    payload["elements"] = [
+        element for element in payload["elements"] if element.get("id") != CAFE_CENTRO_OBJECT_ID
+    ]
+    return payload
+
+
+def _with_cafe_centro_missing_coordinates(payload: dict[str, Any]) -> dict[str, Any]:
+    payload["elements"] = [
+        {key: value for key, value in element.items() if key not in ("lat", "lon")}
+        if element.get("id") == CAFE_CENTRO_OBJECT_ID
+        else element
+        for element in payload["elements"]
+    ]
+    return payload
+
+
+def _extract_from_payload(
+    payload: dict[str, Any], tmp_path: Path, source_config: SourceConfig, name: str
+) -> ExtractionResult:
+    snapshot_path = tmp_path / f"{name}.json"
+    snapshot_path.write_text(json.dumps(payload), encoding="utf-8")
+    return extract_offline(snapshot_path, source_config, tmp_path / "raw")
+
+
+def _transform(extraction: ExtractionResult, source_config: SourceConfig) -> TransformationResult:
+    return transform_payload(
+        extraction.payload,
+        source=extraction.source,
+        retrieved_at=extraction.retrieved_at,
+        run_id=extraction.run_id,
+        study_area=source_config.study_area,
+    )
 
 
 def test_first_load_persists_run_snapshot_staging_and_analytics(
@@ -361,3 +407,182 @@ def test_staging_geometry_is_null_for_rejected_rows(
         )
         == 1
     )
+
+
+def test_second_run_retires_cafe_absent_from_current_run(
+    extraction: ExtractionResult, source_config: SourceConfig, tmp_path: Path
+) -> None:
+    transformation_n = _transform(extraction, source_config)
+    load_run(extraction, transformation_n, dsn=DATABASE_URL)
+    count_before = _scalar("SELECT count(*) FROM analytics.cafes", {})
+
+    extraction_n1 = _extract_from_payload(
+        _without_cafe_centro(_load_fixture_payload()), tmp_path, source_config, "run_n1"
+    )
+    transformation_n1 = _transform(extraction_n1, source_config)
+
+    metrics_n1 = load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
+
+    assert metrics_n1.retired == 1
+    assert metrics_n1.inserted == 0
+    assert _scalar("SELECT count(*) FROM analytics.cafes", {}) == count_before - 1
+    assert (
+        _scalar(
+            "SELECT count(*) FROM analytics.cafes WHERE source_id = %(source_id)s",
+            {"source_id": CAFE_CENTRO_SOURCE_ID},
+        )
+        == 0
+    )
+    assert str(
+        _scalar(
+            "SELECT DISTINCT run_id FROM analytics.cafes WHERE source = 'openstreetmap'",
+            {},
+        )
+    ) == str(extraction_n1.run_id)
+
+
+def test_retirement_keeps_previous_run_staging_intact(
+    extraction: ExtractionResult, source_config: SourceConfig, tmp_path: Path
+) -> None:
+    transformation_n = _transform(extraction, source_config)
+    load_run(extraction, transformation_n, dsn=DATABASE_URL)
+
+    extraction_n1 = _extract_from_payload(
+        _without_cafe_centro(_load_fixture_payload()), tmp_path, source_config, "run_n1"
+    )
+    transformation_n1 = _transform(extraction_n1, source_config)
+    load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
+
+    row = _row(
+        "SELECT name, ST_X(geometry), ST_Y(geometry)"
+        " FROM staging.cafe_records WHERE run_id = %(run_id)s AND source_id = %(source_id)s",
+        {"run_id": extraction.run_id, "source_id": CAFE_CENTRO_SOURCE_ID},
+    )
+    assert row is not None
+    name, x, y = row
+    assert name == "Café Centro"
+    assert x == pytest.approx(-103.344)
+    assert y == pytest.approx(20.6736)
+    assert _scalar("SELECT count(*) FROM raw.overpass_snapshots", {}) == 2
+
+
+def test_cafe_rejected_in_next_run_is_retired_and_auditable(
+    extraction: ExtractionResult, source_config: SourceConfig, tmp_path: Path
+) -> None:
+    transformation_n = _transform(extraction, source_config)
+    load_run(extraction, transformation_n, dsn=DATABASE_URL)
+
+    extraction_n1 = _extract_from_payload(
+        _with_cafe_centro_missing_coordinates(_load_fixture_payload()),
+        tmp_path,
+        source_config,
+        "run_n1",
+    )
+    transformation_n1 = _transform(extraction_n1, source_config)
+    rejected_cafe = next(
+        record for record in transformation_n1.rejected if record.source_id == CAFE_CENTRO_SOURCE_ID
+    )
+    assert rejected_cafe.rejection_reason is RejectionReason.MISSING_COORDINATES
+
+    metrics_n1 = load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
+
+    assert metrics_n1.retired == 1
+    assert (
+        _scalar(
+            "SELECT count(*) FROM analytics.cafes WHERE source_id = %(source_id)s",
+            {"source_id": CAFE_CENTRO_SOURCE_ID},
+        )
+        == 0
+    )
+    row = _row(
+        "SELECT validation_status, rejection_reason FROM staging.cafe_records"
+        " WHERE run_id = %(run_id)s AND source_id = %(source_id)s",
+        {"run_id": extraction_n1.run_id, "source_id": CAFE_CENTRO_SOURCE_ID},
+    )
+    assert row == ("rejected", "missing_coordinates")
+
+
+def test_retirement_only_affects_the_run_source(
+    extraction: ExtractionResult, source_config: SourceConfig, tmp_path: Path
+) -> None:
+    transformation_n = _transform(extraction, source_config)
+    load_run(extraction, transformation_n, dsn=DATABASE_URL)
+
+    other_run_id = str(uuid4())
+    with psycopg.connect(DATABASE_URL) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO meta.pipeline_runs (run_id, source, retrieved_at, status)"
+                " VALUES (%(run_id)s, 'other', CURRENT_TIMESTAMP, 'completed')",
+                {"run_id": other_run_id},
+            )
+            cursor.execute(
+                "INSERT INTO analytics.cafes ("
+                " source_id, source, object_type, object_id, name, category,"
+                " latitude, longitude, geometry, geometry_method, tags,"
+                " retrieved_at, run_id"
+                ") VALUES ("
+                " 'other:node:1', 'other', 'node', 1, 'Otra fuente', 'cafe',"
+                " 20.0, -103.0, ST_SetSRID(ST_MakePoint(-103.0, 20.0), 4326),"
+                " 'node_coordinates', '{}'::jsonb, CURRENT_TIMESTAMP, %(run_id)s"
+                ")",
+                {"run_id": other_run_id},
+            )
+
+    extraction_n1 = _extract_from_payload(
+        _without_cafe_centro(_load_fixture_payload()), tmp_path, source_config, "run_n1"
+    )
+    transformation_n1 = _transform(extraction_n1, source_config)
+    load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
+
+    assert (
+        _scalar(
+            "SELECT count(*) FROM analytics.cafes WHERE source_id = 'other:node:1'",
+            {},
+        )
+        == 1
+    )
+
+
+def test_run_without_accepted_records_does_not_retire(
+    extraction: ExtractionResult,
+    source_config: SourceConfig,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    transformation_n = _transform(extraction, source_config)
+    load_run(extraction, transformation_n, dsn=DATABASE_URL)
+    count_before = _scalar("SELECT count(*) FROM analytics.cafes", {})
+
+    extraction_n1 = _extract_from_payload({"elements": []}, tmp_path, source_config, "run_n1")
+    transformation_n1 = _transform(extraction_n1, source_config)
+
+    with caplog.at_level(logging.WARNING, logger="zmg_cafes_etl.load"):
+        metrics_n1 = load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
+
+    assert metrics_n1.retired == 0
+    assert _scalar("SELECT count(*) FROM analytics.cafes", {}) == count_before
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("retirement skipped" in message for message in messages)
+
+
+def test_reappearing_cafe_is_reinserted(
+    extraction: ExtractionResult, source_config: SourceConfig, tmp_path: Path
+) -> None:
+    transformation_n = _transform(extraction, source_config)
+    load_run(extraction, transformation_n, dsn=DATABASE_URL)
+
+    extraction_n1 = _extract_from_payload(
+        _without_cafe_centro(_load_fixture_payload()), tmp_path, source_config, "run_n1"
+    )
+    transformation_n1 = _transform(extraction_n1, source_config)
+    load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
+
+    extraction_n2 = _extract_from_payload(
+        _load_fixture_payload(), tmp_path, source_config, "run_n2"
+    )
+    transformation_n2 = _transform(extraction_n2, source_config)
+    metrics_n2 = load_run(extraction_n2, transformation_n2, dsn=DATABASE_URL)
+
+    assert metrics_n2.inserted == 1
+    assert metrics_n2.retired == 0
