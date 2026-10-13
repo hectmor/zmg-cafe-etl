@@ -13,7 +13,7 @@ M4 Carga idempotente        COMPLETADO
 M5 API FastAPI              COMPLETADO
 M6 Frontend Leaflet         COMPLETADO
 M7 Compose e integración    COMPLETADO
-M8 Hardening profesional    SIGUIENTE
+M8 Hardening profesional    EN CURSO
 ```
 
 ## M0 — Fundación del repositorio
@@ -130,9 +130,33 @@ Validación al cerrar M7: Ruff OK, formato OK y 54 pruebas exitosas sin BD (18 o
 
 ## M8 — Hardening profesional
 
-**Estado:** siguiente milestone.
+**Estado:** en curso.
 
-Agregar observabilidad ligera, frescura, rendimiento, respaldo, recuperación y evaluación de ingesta incremental.
+Endurecer operación y visibilidad del stack ya entregado (M1-M7). Alcance operativo únicamente: sin funcionalidad de negocio nueva en ETL, API ni frontend; la ingesta incremental solo se evalúa en esta fase, no se implementa.
+
+### M8.1 — Observabilidad ligera y frescura (issue #40)
+
+Exponer el estado y la frescura de las ejecuciones ETL sin herramientas externas, usando `meta.pipeline_runs`: endpoint de solo lectura con las últimas ejecuciones y el tiempo desde la última `completed`, más logging estructurado en el CLI/loader.
+
+Criterios: el endpoint es de solo lectura; la frescura se calcula sobre datos reales (nunca fabricada si no hay ejecuciones); pruebas unitarias y al menos una de integración contra PostGIS; documentado en `docs/database.md` y `docs/project-spec.md`.
+
+### M8.2 — Rendimiento (issue #41)
+
+Confirmar con `EXPLAIN ANALYZE` real que las consultas de `api/db.py` usan los índices existentes (clave única `source_id`, índices GiST de `analytics.cafes`); si aparece un cuello de botella real, agregar un índice vía migración Flyway, nunca SQL manual no rastreado.
+
+Criterios: el plan de ejecución real queda documentado en `docs/database.md`; cualquier índice nuevo está cubierto por una migración versionada.
+
+### M8.3 — Respaldo y recuperación (issue #42)
+
+Procedimiento documentado y probado de `pg_dump`/restauración del volumen `postgres_data`: respaldo con datos cargados, destrucción desechable del stack, recreación, restauración y comparación de conteos de `analytics.cafes` antes/después.
+
+Criterios: el procedimiento se ejecuta tal cual y reproduce los mismos conteos; ningún dump ni dato productivo se commitea.
+
+### M8.4 — Evaluación de ingesta incremental (issue #43)
+
+ADR-005 que compare la re-extracción completa actual (con deduplicación determinista de M2 y upsert idempotente de M4) contra filtros incrementales de Overpass (`newer`/`changed`), con una decisión explícita: adoptar, descartar o posponer. Sin implementación en este issue.
+
+Criterios: ADR registrado en `docs/decisions/` siguiendo el formato de ADR-001 a ADR-004; decisión justificada y no dejada abierta.
 
 ## Punto de reanudación
 
@@ -145,4 +169,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-La siguiente tarea es **M8 — Hardening profesional**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/roadmap.md` y `docs/database.md`. El alcance (observabilidad ligera, frescura, rendimiento, respaldo, recuperación y evaluación de ingesta incremental) todavía no tiene criterios de aceptación detallados por fase; defínelos antes de delegar tareas a los especialistas.
+La siguiente tarea es **M8 — Hardening profesional** (milestone de GitHub, issues #40-#44). Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/roadmap.md` y `docs/database.md`. Los cuatro sub-milestones (M8.1-M8.4) ya tienen alcance y criterios de aceptación cerrados arriba; cada uno se delega en su propia rama con PR a `develop`.
