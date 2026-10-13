@@ -1,58 +1,99 @@
-# Handoff para continuar el proyecto
+# Handoff y brief de auditoría
 
-Este documento describe el estado del checkout y la tarea concreta para el siguiente modelo.
+Documento autocontenido para que un modelo auditor (o el siguiente colaborador) entienda el estado del repo sin contexto adicional. Última actualización: **13 de octubre de 2026** (tras la sesión de M7).
 
-## Estado al 13 de octubre de 2026
+## 1. Reglas de trabajo activas
 
-- M1 extracción: implementada. `extract_offline` y `extract_live` escriben snapshot JSON y metadatos; la petición live está cubierta mediante HTTP simulado, no contra Overpass.
-- M2 transformación: implementada como biblioteca. `transform_payload` normaliza `node`, `way` y `relation`, crea GeoJSON `[longitude, latitude]`, asigna advertencias/rechazos y conserva el primer objeto de cada identidad duplicada.
-- M3 base de datos: implementada y aplicada con Flyway 13.6.0 sobre PostgreSQL 17.5/PostGIS. La versión 1 crea schemas/tablas, constraints y los dos índices GiST.
-- M4 carga/pipeline: implementada. `load_run` persiste cada ejecución en una transacción (`meta.pipeline_runs`, `raw.overpass_snapshots`, staging completo y solo aceptados en analytics) con upsert idempotente por `source_id`. La migración `V2__partial_unique_accepted_identity.sql` permite auditar duplicados rechazados sin romper la unicidad de aceptados. El CLI acepta `--database-url` y reporta métricas.
-- M5 API FastAPI: implementada. El paquete `api/` (separado del ETL) expone solo la capa `analytics` con `GET /health`, `GET /cafes` (paginado), `GET /cafes/{source_id}`, `GET /geojson/cafes` y `GET /stats`. Se sirve con `python -m uvicorn api.main:app` usando `DATABASE_URL`.
-- M6 frontend Leaflet: implementado. `frontend/` es un cliente estático sin frameworks: mapa de la ZMG, búsqueda por nombre, filtro por `object_type`, marcadores con popup, estados de carga/error y atribución de OpenStreetMap/Overpass/Leaflet. Consume solo la API; se sirve con `python -m http.server 8080 --directory frontend` y la API habilita CORS para ese origen.
+- **Git:** una rama por issue (`tipo/issue-N-slug`) desde `develop`; cada PR va a `develop` y referencia `Closes #N`. Rama por fase quedó obsoleta (issue #18).
+- **Metadata de PR:** assignee `hectmor`, label del issue, milestone correspondiente y proyecto GitHub `zmg-cafe`.
+- **Migraciones:** solo Flyway (`db/migrations`, imágenes `redgate/flyway:13.6.0`). Prohibido Alembic y SQL manual no rastreado.
+- **Commits:** inglés, formato de `docs/convencion-commits.md`, sin trailers de coautoría.
+- **Contrato:** identidad `source + object_type + object_id`; `source_id = source:object_type:object_id`; WGS84/SRID 4326; GeoJSON `[longitude, latitude]`; no fabricar nombres, límites municipales, timestamps ni conteos.
+- **Multiagente:** la sesión primaria (Lead) coordina a `etl-engineer`, `database-engineer` y `qa-data-quality-engineer` (`.opencode/agents/`, equivalente a los perfiles Codex de `docs/agent-workflows/profiles/`).
 
-Los milestones están commiteados por fase en ramas con PR a `develop`.
+## 2. Dónde vive la verdad
 
-## Entorno y comandos verificados
+| Tema | Fuente |
+|---|---|
+| Avance por milestone | `docs/milestones.md` (estados y validaciones) |
+| Definición de terminado | `docs/roadmap.md` |
+| Decisiones de diseño | `docs/decisions/` (ADR-001 fuente, ADR-002 snapshots raw, ADR-003 batch manual, ADR-004 contrato de registro) |
+| Campos y estados | `docs/data_dictionary.md`, `docs/project-spec.md` |
+| Esquema de base | `docs/database.md` + migraciones `db/migrations/` |
+| Operación del stack | `docs/install.md`, este documento |
+| Protocolo multiagente | `docs/agent-workflows/` |
+| Convención de commits | `docs/convencion-commits.md` |
 
-El entorno Conda `zmg-cafe` disponible en esta máquina usa Python 3.14.8, fuera del rango declarado en `pyproject.toml` (`>=3.12,<3.14`). Ruff, pytest y psycopg están instalados allí. Como el paquete no está instalado editable, las pruebas se ejecutaron así:
+## 3. Estado del roadmap
+
+M0–M6 **completados y documentados** (fundación, extracción Overpass, transformación/validación, PostGIS+Flyway, carga idempotente, API FastAPI, frontend Leaflet). **M7 (Compose, integración y CI) está implementado en PRs abiertos** (ver §4). M8 (hardening) pendiente. Detalle y validaciones: `docs/milestones.md`.
+
+## 4. Estado de GitHub al 2026-10-13
+
+**Milestones:** #1 `M4` cerrado · #2 `M5` cerrado · #3 `M7` abierto (issues #20–#24, todos con PR).
+
+**PRs abiertos (todos a `develop`, assignee `hectmor`, milestone M7):**
+
+| PR | Issue | Rama | Contenido | Estado |
+|---|---|---|---|---|
+| #25 | #20 | `feat/issue-20-compose-services` | `Dockerfile` API + servicios `api`/`frontend` en Compose con healthchecks | base del stack |
+| #27 | #21 | `feat/issue-21-compose-profiles` | Perfil `etl` + flujo `up → migrate → etl → verificar` | apilado en #25 |
+| #29 | #24 | `docs/issue-24-clean-install` | `docs/install.md` con registro de instalación limpia real | apilado en #27 |
+| #28 | #23 | `feat/issue-23-compose-integration` | 5 pruebas del stack servido (health, datos, GeoJSON, frontend, CORS) | independiente |
+| #30 | #22 | `feat/issue-22-ci-workflow` | `.github/workflows/ci.yml` (quality + integration con Flyway) | **CI verde** |
+
+**Orden de merge:** #25 → #27 → #29; #28 y #30 en cualquier orden. Los apilados muestran también commits de sus dependencias hasta que se fusionen.
+
+**Issues abiertos sin milestone:** #18 (unificar convención rama por issue y metadata de PR en docs) · #19 (verificar que los agentes opencode se usen) · #26 (bug: la API no acepta el DSN `postgresql+psycopg://` de `.env.example`) · #31 (este documento).
+
+## 5. Verificación: comandos y resultados esperados
 
 ```bash
-conda run -n zmg-cafe python -m ruff check .
-conda run -n zmg-cafe python -m ruff format --check .
-conda run -n zmg-cafe env PYTHONPATH=src python -m pytest
+uv sync --extra dev          # Python 3.13 (pyproject exige >=3.12,<3.14)
+uv run ruff check .          # All checks passed
+uv run ruff format --check . # N archivos ya formateados
+uv run pytest                # 54 passed, 13 skipped (sin BD; integración se omite)
 ```
 
-Resultado al cerrar M6: Ruff OK, formato OK, 67 pruebas aprobadas (54 sin BD y 13 de integración contra PostGIS), `git diff --check` OK y Flyway 13.6.0 con las versiones 1 y 2 aplicadas. Instalar/ejecutar con Python 3.12 o 3.13 sigue pendiente. El renderizado del frontend en navegador no se verificó con automatización; solo se probó por HTTP.
-
-Las pruebas de integración en `tests/integration/` limpian los cuatro schemas antes de cada prueba; requieren una base de desarrollo accesible vía `ZMG_TEST_DATABASE_URL` y se omiten si la variable no está definida:
+Con una base migrada por Flyway y variables definidas, la suite completa pasa (67 pruebas: 54 sin BD + 13 de integración; con el PR #28 se suman 5 del stack):
 
 ```bash
-conda run -n zmg-cafe env PYTHONPATH=src \
-  ZMG_TEST_DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:PUERTO/zmg_cafes \
-  python -m pytest
+export ZMG_TEST_DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:<PUERTO>/zmg_cafes
+export ZMG_STACK_API_URL=http://localhost:8000        # solo con el stack levantado
+export ZMG_STACK_FRONTEND_URL=http://localhost:8080   # solo con el stack levantado
+uv run pytest
 ```
 
-La base local se levanta con `POSTGRES_PORT=0 docker compose up -d db`; Docker asigna un puerto aleatorio del host (consulta el actual con `docker port zmg-cafe-etl-db-1`). Las migraciones se aplican con `POSTGRES_PORT=0 docker compose --profile migrate run --rm flyway`. El volumen Docker `postgres_data` conserva el esquema migrado. Para detenerlo sin borrar los datos: `docker compose stop db`. No ejecutar `down -v`. Nunca ejecutes `docker compose run` sin `POSTGRES_PORT=0` mientras otro servicio use el puerto 5432: recrea el contenedor con el puerto por defecto y falla.
+Resultado verificado hoy: 13/13 de integración y 5/5 del stack en verde; `pytest` sin variables: 54 passed. CI del PR #30: jobs `quality` e `integration` en verde. El flujo completo del stack (incluida una instalación limpia real desde `git clone`) está registrado en `docs/install.md`.
 
-## Contrato de persistencia existente
+## 6. Entorno operativo
 
-Las migraciones están en `db/migrations` y Flyway es el único migrador permitido.
+- **Stack Compose:** `db` (postgis/postgis:17-3.5), `flyway` (redgate/flyway:13.6.0, perfil `migrate`), `api` (imagen del `Dockerfile`, Python 3.13-slim + uvicorn), `frontend` (nginx:1.27-alpine). Servicio `etl` (perfil `etl`) ejecuta el pipeline contra el stack.
+- **Puertos:** `api` 8000, `frontend` 8080 (orígenes CORS de la API), `db` 5432. Convención `POSTGRES_PORT=0` cuando el host ya usa 5432 (Docker asigna uno aleatorio; consultar con `docker compose port db 5432`).
+- **Cuidados:** `docker compose stop` conserva datos; no ejecutar `down -v`; no ejecutar `docker compose run` sin `POSTGRES_PORT=0` si otro servicio ocupa 5432.
+- **Variables:** `.env.example` solo documenta placeholders (nunca secretos en Git). `ZMG_TEST_DATABASE_URL`, `ZMG_STACK_API_URL` y `ZMG_STACK_FRONTEND_URL` solo para pruebas.
+- **Python:** usar `uv` con 3.13. El entorno conda local `zmg-cafe` tiene 3.14.8 (fuera del rango de `pyproject.toml`); no usarlo como referencia.
 
-- `meta.pipeline_runs`: una ejecución, UUID, fuente, timestamps y estado.
-- `raw.overpass_snapshots`: consulta/hash, payload JSONB y ruta del snapshot.
-- `staging.cafe_records`: filas aceptadas y rechazadas, estado y razón; `geometry` es `Point, 4326` y es nula en rechazos.
-- `analytics.cafes`: estado consultable actual por `source_id`, con clave primaria y geometría `Point, 4326`.
-- `run_id` corresponde a `ExtractionResult.run_id`; `retrieved_at`, query, hash, payload y ruta provienen de `ExtractionResult`.
-- La geometría se construye en SQL como `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`; GeoJSON y PostGIS usan longitud antes que latitud.
-- Desde V2, la unicidad de `(run_id, source_id)` en staging solo aplica a `accepted`/`accepted_with_warning` (índice `staging_run_accepted_identity`); los duplicados rechazados se conservan como filas propias.
+## 7. Contrato de persistencia (resumen)
 
-## Tarea y aceptación para M7
+Esquemas: `meta.pipeline_runs` (ejecución), `raw.overpass_snapshots` (payload crudo), `staging.cafe_records` (aceptados y rechazados, con razón) y `analytics.cafes` (estado consultable por `source_id`). Geometría `Point, 4326` construida como `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`; nula en rechazos. Desde `V2`, la unicidad de `(run_id, source_id)` en staging aplica solo a aceptados (índice `staging_run_accepted_identity`); los duplicados rechazados quedan auditables. Detalle: `docs/database.md`, `docs/data_dictionary.md`.
 
-1. Completar `compose.yaml` para levantar el pipeline completo de forma reproducible (base, migraciones, API y frontend según aplique).
-2. Automatizar pruebas de integración y migraciones Flyway en CI.
-3. Validar la instalación limpia desde un checkout nuevo siguiendo la documentación.
-4. Documentar los comandos operativos y actualizar `README.md` y `docs/milestones.md`.
-5. No expandir M7 a observabilidad ni hardening (M8).
+## 8. Problemas conocidos y limitaciones
 
-No agregar Alembic. Usa SQL versionado por Flyway para cambios de esquema y respeta el contrato de `docs/data_dictionary.md`.
+- **#26 (bug):** `api/db.py` conecta con `psycopg.connect` sin normalizar el sufijo `postgresql+psycopg://` que documentan `.env.example` y `docs/database.md`; con ese valor, `/health` queda en 503. El loader sí lo normaliza (`normalize_dsn`). Repro y aceptación en el issue.
+- **#19:** los agentes opencode (`etl-engineer`, `database-engineer`, `qa-data-quality-engineer`) existen en `.opencode/agents/`, pero no se ha verificado que una sesión los cargue y use.
+- **#18:** la documentación de workflow aún refleja "una rama por fase"; la convención vigente es rama por issue + metadata de PR (§1).
+- **Renderizado en navegador** del frontend sin automatizar (solo verificación HTTP), heredado de M6.
+- **Extracción live contra Overpass real nunca ejecutada** (M1); el modo live está cubierto con HTTP simulado.
+- **Historia descartada:** hubo un intento local paralelo de M2–M4 con Alembic; está obsoleto y preservado como `stash@{0}` en la rama `main` de esta máquina. El camino válido es `develop` + Flyway. No mezclar.
+
+## 9. Checklist de auditoría sugerida
+
+- [ ] `docs/milestones.md` coincide con el código de `develop` (M1–M6) y las validaciones citadas son reproducibles.
+- [ ] Migraciones Flyway: únicas, reversibles donde aplique y sin SQL manual fuera de `db/migrations`.
+- [ ] Pruebas: cobertura de identidad, coordenadas, duplicados, rechazos con razón, idempotencia de carga y contrato de API/GeoJSON.
+- [ ] Contrato: `source_id`, `[longitude, latitude]`, SRID 4326 y estados/razones según `docs/data_dictionary.md`.
+- [ ] Seguridad: sin secretos en Git; API de solo lectura sobre `analytics`; CORS limitado a orígenes documentados; imágenes con versiones fijadas.
+- [ ] Consistencia GitHub: cada PR referencia `Closes #N`, con assignee/label/milestone acordes a §1 y §4.
+- [ ] Los comandos de `README.md`, `docs/install.md` y §5 se ejecutan tal cual y producen los resultados citados.
+- [ ] Coherencia entre `compose.yaml`, `Dockerfile`, `.github/workflows/ci.yml` y esta documentación.
