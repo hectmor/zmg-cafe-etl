@@ -11,11 +11,20 @@ class StoreError(RuntimeError):
     """Raised when the analytics layer cannot answer a query."""
 
 
+def normalize_dsn(dsn: str) -> str:
+    """Return a DSN psycopg can open, dropping SQLAlchemy driver suffixes."""
+
+    for prefix in ("postgresql+psycopg://", "postgres+psycopg://"):
+        if dsn.startswith(prefix):
+            return f"postgresql://{dsn[len(prefix) :]}"
+    return dsn
+
+
 class AnalyticsStore:
     """Query the consumer-facing `analytics` schema of the café database."""
 
     def __init__(self, dsn: str) -> None:
-        self._dsn = dsn
+        self._dsn = normalize_dsn(dsn)
 
     def ping(self) -> bool:
         """Return True when the database answers a trivial query."""
