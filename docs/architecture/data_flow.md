@@ -7,7 +7,7 @@
 3. Guardar el payload original junto con `run_id`, consulta/hash, timestamps y fuente. **Implementado.**
 4. Convertir cada elemento a un registro normalizado. **Implementado** en `transform_payload`.
 5. Separar registros válidos y rechazados con razones explícitas. **Implementado** en `TransformationResult`; la persistencia queda pendiente.
-6. Cargar staging y después analytics dentro de límites transaccionales documentados.
+6. Cargar staging y después analytics dentro de límites transaccionales documentados. **Implementado** en `load_run`; una ejecución se persiste en una sola transacción.
 7. Servir solo la capa consumer-facing a la API.
 
 ## Identidad y tiempo

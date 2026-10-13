@@ -9,8 +9,8 @@ M0 Fundación                 COMPLETADO
 M1 Contrato y extracción    COMPLETADO
 M2 Transformación y calidad COMPLETADO
 M3 PostgreSQL/PostGIS       COMPLETADO
-M4 Carga idempotente        SIGUIENTE
-M5 API FastAPI              PENDIENTE
+M4 Carga idempotente        COMPLETADO
+M5 API FastAPI              SIGUIENTE
 M6 Frontend Leaflet         PENDIENTE
 M7 Compose e integración    PENDIENTE
 M8 Hardening profesional    PENDIENTE
@@ -90,13 +90,17 @@ Validación: Flyway aplicó y verificó la versión 1 en PostgreSQL 17.5; las ge
 
 ## M4 — Carga idempotente y pipeline
 
-**Estado:** pendiente de M3.
+**Estado:** completado.
 
 Implementar staging, upserts, transacciones, ejecución de pipeline, métricas y estados de ejecución.
 
+Entregables: migración `V2__partial_unique_accepted_identity.sql` (unicidad de identidad solo para aceptados, con rechazos auditables en staging), unidad de carga transaccional en `src/zmg_cafes_etl/load.py`, upsert idempotente de `analytics.cafes` por `source_id`, CLI con transformación y carga opcional, métricas de aceptados, rechazados, insertados y actualizados.
+
+Validación al cerrar M4: Flyway aplicó y verificó las versiones 1 y 2 en PostgreSQL 17.5/PostGIS. Ruff OK, formato OK y 45 pruebas exitosas: 39 sin Internet y 6 de integración contra PostGIS (`ZMG_TEST_DATABASE_URL`) que cubren primera carga, recarga sin duplicados, duplicado rechazado con identidad aceptada única, rollback completo ante fallo, geometría SRID 4326 y geometría nula en rechazos. Demostración CLI con `--database-url` sobre la carga del fixture: 4 aceptados, 0 rechazados, 4 insertados.
+
 ## M5 — API FastAPI
 
-**Estado:** pendiente de M4.
+**Estado:** siguiente milestone.
 
 Implementar health check, consulta de cafés, detalle, estadísticas, paginación y GeoJSON.
 
@@ -129,4 +133,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-La siguiente tarea es **M4 — Carga idempotente y pipeline**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md`, `docs/database.md`, la migración inicial y `src/zmg_cafes_etl/{extract,transform,models}.py`.
+La siguiente tarea es **M5 — API FastAPI**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md`, `docs/database.md`, las migraciones y `src/zmg_cafes_etl/{extract,transform,load,models}.py`. Para ejecutar las pruebas de integración define `ZMG_TEST_DATABASE_URL` apuntando a PostgreSQL/PostGIS local.
