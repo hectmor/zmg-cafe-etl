@@ -6,7 +6,7 @@ Demostrar, de forma educativa y reproducible, cómo observaciones públicas de c
 
 ## Estado y alcance actual
 
-El repositorio completó la extracción raw, la transformación validada y el contrato de base de datos: incluye configuración de fuente, fixture offline, extractor con snapshots y metadatos, CLI, registros normalizados, advertencias, rechazos, deduplicación determinista y migraciones Flyway para PostgreSQL/PostGIS. La carga, API y frontend aún no están implementados.
+El repositorio completó la extracción raw, la transformación validada, el contrato de base de datos, la carga idempotente y la API FastAPI: incluye configuración de fuente, fixture offline, extractor con snapshots y metadatos, CLI, registros normalizados, advertencias, rechazos, deduplicación determinista, migraciones Flyway para PostgreSQL/PostGIS, carga transaccional con upsert en analytics y endpoints consumer-facing con paginación, detalle, estadísticas y GeoJSON. El frontend aún no está implementado.
 
 ## Contrato compartido inicial
 

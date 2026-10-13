@@ -10,8 +10,8 @@ M1 Contrato y extracción    COMPLETADO
 M2 Transformación y calidad COMPLETADO
 M3 PostgreSQL/PostGIS       COMPLETADO
 M4 Carga idempotente        COMPLETADO
-M5 API FastAPI              SIGUIENTE
-M6 Frontend Leaflet         PENDIENTE
+M5 API FastAPI              COMPLETADO
+M6 Frontend Leaflet         SIGUIENTE
 M7 Compose e integración    PENDIENTE
 M8 Hardening profesional    PENDIENTE
 ```
@@ -100,13 +100,17 @@ Validación al cerrar M4: Flyway aplicó y verificó las versiones 1 y 2 en Post
 
 ## M5 — API FastAPI
 
-**Estado:** siguiente milestone.
+**Estado:** completado.
 
 Implementar health check, consulta de cafés, detalle, estadísticas, paginación y GeoJSON.
 
+Entregables: paquete `api/` separado del ETL (`main.py`, `db.py`, `schemas.py`), endpoints `GET /health`, `GET /cafes`, `GET /cafes/{source_id}`, `GET /geojson/cafes` y `GET /stats`, paginación con `limit`/`offset` validada, respuestas GeoJSON con coordenadas `[longitude, latitude]` y acceso de solo lectura a la capa `analytics`.
+
+Validación al cerrar M5: Ruff OK, formato OK y 60 pruebas exitosas — 47 sin BD (rutas con store simulado) y 13 de integración contra PostGIS que cargan el fixture con el loader y verifican health, listado, paginación, detalle, 404, GeoJSON y estadísticas. Smoke test con `python -m uvicorn api.main:app` sobre datos reales: health conectado, listado paginado, FeatureCollection con `[-103.344, 20.6736]` y stats `total: 4`. El cliente de pruebas usa `httpx2` porque Starlette 1.7 deprecó `httpx` en su TestClient.
+
 ## M6 — Frontend Leaflet
 
-**Estado:** pendiente de M5.
+**Estado:** siguiente milestone.
 
 Implementar mapa, búsqueda, filtros, marcadores, estados de carga/error y atribución.
 
@@ -133,4 +137,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-La siguiente tarea es **M5 — API FastAPI**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md`, `docs/database.md`, las migraciones y `src/zmg_cafes_etl/{extract,transform,load,models}.py`. Para ejecutar las pruebas de integración define `ZMG_TEST_DATABASE_URL` apuntando a PostgreSQL/PostGIS local.
+La siguiente tarea es **M6 — Frontend Leaflet**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/project-spec.md`, `docs/data_dictionary.md` y la capa `api/`. El frontend consume solo la API (`/cafes`, `/geojson/cafes`, `/stats`, `/health`) y no accede a la base. Para ejecutar las pruebas de integración define `ZMG_TEST_DATABASE_URL` apuntando a PostgreSQL/PostGIS local.
