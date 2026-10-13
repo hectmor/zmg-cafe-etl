@@ -1,6 +1,6 @@
 # Arquitectura del workflow multiagente
 
-Estos agentes son roles de desarrollo coordinados por Codex; no son servicios productivos independientes.
+Estos agentes son roles de desarrollo coordinados por una sesión Lead (Codex u opencode); no son servicios productivos independientes.
 
 ## Roles
 
@@ -41,3 +41,24 @@ Un fallo de herramienta, red o dependencia se reporta como limitación reproduci
 ## Capacidad real de Codex verificada
 
 El CLI local `0.162.1` soporta perfiles TOML (`--profile`), worktrees (`--worktree`), sandbox read-only/workspace-write, sesiones y el feature estable `multi_agent`. La delegación dentro de esta sesión se realiza con las herramientas de subagentes del harness; el CLI local no expone un comando de “crear agente especialista” en `codex agents`. Por ello las instrucciones de rol viven en Markdown versionado y los TOML solo fijan configuración operacional.
+
+## Equivalencia con opencode
+
+Los mismos roles están traducidos al formato nativo de opencode en `.opencode/agents/` (`etl-engineer.md`, `database-engineer.md`, `qa-data-quality-engineer.md`). El contenido de rol es equivalente al de `docs/agent-workflows/agents/`; esos archivos siguen siendo la referencia para Codex.
+
+El rol Lead Engineer no tiene perfil propio en Codex (es la sesión principal) y tampoco lo tiene en opencode: lo ejerce la sesión primaria (`build`) guiada por `AGENTS.md` y este documento.
+
+Mapeo de perfiles TOML de Codex a frontmatter de opencode:
+
+| Perfil Codex | `model_reasoning_effort` | `approval_policy` | `sandbox_mode` | Equivalente opencode |
+|---|---|---|---|---|
+| `zmg-etl` | `medium` | `on-request` | `workspace-write` | `reasoningEffort: medium`, `permission.edit: allow`, `permission.bash: ask` |
+| `zmg-db` | `medium` | `on-request` | `workspace-write` | `reasoningEffort: medium`, `permission.edit: allow`, `permission.bash: ask` |
+| `zmg-qa` | `low` | `on-request` | `read-only` | `reasoningEffort: low`, `permission.edit: deny`, `permission.bash: ask` |
+
+Notas del mapeo:
+
+- `reasoningEffort` es un option de paso (`passthrough`) específico del proveedor/modelo; se ignora si el modelo no lo soporta. Quitar la línea del frontmatter si provoca errores en el proveedor.
+- `approval_policy = "on-request"` se traduce a `bash: ask`: cada comando requiere confirmación del usuario.
+- opencode no tiene sandbox de filesystem para `bash`. El modo `read-only` de QA se garantiza con `edit: deny` (bloquea `write`, `edit` y `apply_patch`) más la aprobación manual de comandos; un comando `bash` aprobado podría escribir fuera de las herramientas de edición. Es la única divergencia conocida frente al sandbox de Codex.
+- `mode: all` permite usar cada especialista como agente primario (Tab / `opencode run --agent`) y como subagente (`@mención` o herramienta Task).

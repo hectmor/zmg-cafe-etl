@@ -46,6 +46,19 @@ cp docs/agent-workflows/profiles/zmg-db.config.toml "$CODEX_HOME/"
 cp docs/agent-workflows/profiles/zmg-qa.config.toml "$CODEX_HOME/"
 ```
 
+## Cómo iniciarlo en opencode
+
+Los agentes traducidos viven en `.opencode/agents/` y opencode los carga automáticamente al arrancar en este repositorio; no requieren copia a configuración global. El Lead Engineer es la sesión primaria (`build`) con `AGENTS.md` y `docs/agent-workflows/architecture.md` como contexto.
+
+Una ejecución read-only de revisión con el agente QA tiene esta forma:
+
+```bash
+opencode run --agent qa-data-quality-engineer --dir /home/hector/Documents/datzin/zmg-cafe-etl \
+  "Tarea CONTRACT-001: lee AGENTS.md, docs/project-spec.md, config/sources.yaml y docs/agent-workflows/first-exercise.md; revisa el contrato de café sin modificar archivos."
+```
+
+Para delegar desde la sesión Lead se invoca al especialista con la herramienta Task (`@qa-data-quality-engineer`, `@etl-engineer` o `@database-engineer`) y se conserva su reporte para reconciliación. Los permisos de cada agente (lectura/escritura y aprobación de comandos) están en el frontmatter de `.opencode/agents/`; ver el mapeo en `docs/agent-workflows/architecture.md`.
+
 ## Secuencia de colaboración
 
 1. El Lead asigna `CONTRACT-001-ETL`: proponer campos, identidad, fixture y reglas de rechazo.
