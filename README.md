@@ -73,7 +73,7 @@ No se incorporarán frameworks frontend, sistemas distribuidos, orquestadores o 
 
 ## Estado actual
 
-M1 extracción, M2 transformación, M3 PostgreSQL/PostGIS y M4 carga idempotente están completados. La carga escribe cada ejecución en una transacción sobre PostgreSQL 17/PostGIS con Flyway y upsert idempotente en la capa analítica; el CLI acepta `--database-url` para persistir. La API y el frontend siguen pendientes. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
+M1 extracción, M2 transformación, M3 PostgreSQL/PostGIS, M4 carga idempotente y M5 API FastAPI están completados. La carga escribe cada ejecución en una transacción sobre PostgreSQL 17/PostGIS con Flyway y upsert idempotente en la capa analítica; el CLI acepta `--database-url` para persistir. La API expone solo la capa `analytics` con health, consulta paginada, detalle, estadísticas y GeoJSON. El frontend sigue pendiente. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
 
 ## Roadmap
 
@@ -141,6 +141,15 @@ python -m zmg_cafes_etl --offline tests/fixtures/overpass_cafes_sample.json \
 ```
 
 El segundo comando además transforma y persiste la ejecución en PostgreSQL/PostGIS e imprime las métricas de aceptados, rechazados, insertados y actualizados. Sin `--database-url` (o la variable `DATABASE_URL`) solo se extrae y transforma.
+
+Para servir la API (solo capa `analytics`):
+
+```bash
+DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:5432/zmg_cafes \
+  python -m uvicorn api.main:app --reload
+```
+
+Endpoints: `GET /health`, `GET /cafes` (paginado con `limit`/`offset`), `GET /cafes/{source_id}`, `GET /geojson/cafes` (FeatureCollection con coordenadas `[longitude, latitude]`) y `GET /stats`.
 
 El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.json`](tests/fixtures/overpass_cafes_sample.json).
 
