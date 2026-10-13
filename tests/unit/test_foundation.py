@@ -23,5 +23,5 @@ def test_fixture_is_valid_overpass_shape_and_contains_multiple_object_types() ->
     )
 
     assert isinstance(payload["elements"], list)
-    assert {element["type"] for element in payload["elements"]} == {"node", "way"}
+    assert {element["type"] for element in payload["elements"]} == {"node", "way", "relation"}
     assert all("id" in element and "tags" in element for element in payload["elements"])
