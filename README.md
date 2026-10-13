@@ -161,7 +161,7 @@ Abre `http://localhost:8080` en el navegador. El mapa consulta `/geojson/cafes`,
 
 ### Stack completo con Docker Compose
 
-El pipeline completo (base, migraciones, API y frontend) se levanta de forma reproducible con Compose. Usa `POSTGRES_PORT=0` si otra base ocupa el puerto 5432 del host: Docker asigna un puerto aleatorio a `db` mientras los servicios se comunican internamente por `db:5432`.
+La guía completa desde una máquina nueva, con el registro de una validación limpia real, está en [`docs/install.md`](docs/install.md). El pipeline completo (base, migraciones, API y frontend) se levanta de forma reproducible con Compose. Usa `POSTGRES_PORT=0` si otra base ocupa el puerto 5432 del host: Docker asigna un puerto aleatorio a `db` mientras los servicios se comunican internamente por `db:5432`.
 
 ```bash
 POSTGRES_PORT=0 docker compose up -d db api frontend
