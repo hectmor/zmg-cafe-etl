@@ -73,7 +73,7 @@ No se incorporarán frameworks frontend, sistemas distribuidos, orquestadores o 
 
 ## Estado actual
 
-M1 extracción, M2 transformación y M3 PostgreSQL/PostGIS están completados. M3 incluye PostgreSQL 17, PostGIS y Flyway en Compose. La carga idempotente/pipeline es el siguiente milestone; la API y el frontend siguen pendientes. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
+M1 extracción, M2 transformación, M3 PostgreSQL/PostGIS y M4 carga idempotente están completados. La carga escribe cada ejecución en una transacción sobre PostgreSQL 17/PostGIS con Flyway y upsert idempotente en la capa analítica; el CLI acepta `--database-url` para persistir. La API y el frontend siguen pendientes. La extracción live está implementada, pero no se prueba automáticamente contra Overpass.
 
 ## Roadmap
 
@@ -136,7 +136,11 @@ uv run ruff check .
 uv run ruff format --check .
 uv run pytest
 python -m zmg_cafes_etl --offline tests/fixtures/overpass_cafes_sample.json
+python -m zmg_cafes_etl --offline tests/fixtures/overpass_cafes_sample.json \
+  --database-url postgresql://zmg_cafes:zmg_cafes_dev@localhost:5432/zmg_cafes
 ```
+
+El segundo comando además transforma y persiste la ejecución en PostgreSQL/PostGIS e imprime las métricas de aceptados, rechazados, insertados y actualizados. Sin `--database-url` (o la variable `DATABASE_URL`) solo se extrae y transforma.
 
 El fixture determinista se encuentra en [`tests/fixtures/overpass_cafes_sample.json`](tests/fixtures/overpass_cafes_sample.json).
 

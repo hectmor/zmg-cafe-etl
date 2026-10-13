@@ -31,3 +31,16 @@ def test_initial_migration_defines_geospatial_contract() -> None:
     assert migration.count("GEOMETRY(Point, 4326)") == 2
     assert "staging_run_source_identity UNIQUE (run_id, source_id)" in migration
     assert "USING GIST (geometry)" in migration
+
+
+def test_second_migration_keeps_accepted_identity_unique_per_run() -> None:
+    migration = (ROOT / "db/migrations/V2__partial_unique_accepted_identity.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        "ALTER TABLE staging.cafe_records DROP CONSTRAINT staging_run_source_identity" in migration
+    )
+    assert "CREATE UNIQUE INDEX staging_run_accepted_identity" in migration
+    assert "ON staging.cafe_records (run_id, source_id)" in migration
+    assert "WHERE validation_status IN ('accepted', 'accepted_with_warning')" in migration

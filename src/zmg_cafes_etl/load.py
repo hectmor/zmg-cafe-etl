@@ -1,0 +1,201 @@
+"""Persist extraction and transformation results into PostgreSQL/PostGIS."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+import psycopg
+from psycopg.types.json import Jsonb
+
+from .extract import ExtractionResult
+from .models import NormalizedRecord, TransformationResult
+
+
+class LoadError(RuntimeError):
+    """Raised when a run cannot be persisted as one atomic unit."""
+
+
+@dataclass(frozen=True, slots=True)
+class LoadMetrics:
+    accepted: int
+    rejected: int
+    inserted: int
+    updated: int
+
+    def as_dict(self) -> dict[str, int]:
+        """Return the metrics as a JSON-serializable mapping."""
+
+        return {
+            "accepted": self.accepted,
+            "rejected": self.rejected,
+            "inserted": self.inserted,
+            "updated": self.updated,
+        }
+
+
+_INSERT_PIPELINE_RUN = """
+INSERT INTO meta.pipeline_runs (run_id, source, retrieved_at, status)
+VALUES (%(run_id)s, %(source)s, %(retrieved_at)s, 'started')
+ON CONFLICT (run_id) DO UPDATE
+SET source = EXCLUDED.source,
+    retrieved_at = EXCLUDED.retrieved_at,
+    status = 'started',
+    started_at = CURRENT_TIMESTAMP,
+    completed_at = NULL
+"""
+
+_INSERT_SNAPSHOT = """
+INSERT INTO raw.overpass_snapshots (run_id, query, query_hash, payload, snapshot_path)
+VALUES (%(run_id)s, %(query)s, %(query_hash)s, %(payload)s, %(snapshot_path)s)
+ON CONFLICT (run_id) DO UPDATE
+SET query = EXCLUDED.query,
+    query_hash = EXCLUDED.query_hash,
+    payload = EXCLUDED.payload,
+    snapshot_path = EXCLUDED.snapshot_path
+"""
+
+_DELETE_STAGING_RUN = "DELETE FROM staging.cafe_records WHERE run_id = %(run_id)s"
+
+_INSERT_STAGING = """
+INSERT INTO staging.cafe_records (
+    run_id, source, object_type, object_id, source_id, name, category,
+    latitude, longitude, geometry, geometry_method, tags,
+    source_updated_at, retrieved_at, validation_status, rejection_reason
+)
+VALUES (
+    %(run_id)s, %(source)s, %(object_type)s, %(object_id)s, %(source_id)s, %(name)s,
+    %(category)s, %(latitude)s, %(longitude)s,
+    CASE
+        WHEN %(validation_status)s = 'rejected' THEN NULL
+        ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)
+    END,
+    %(geometry_method)s, %(tags)s, %(source_updated_at)s, %(retrieved_at)s,
+    %(validation_status)s, %(rejection_reason)s
+)
+"""
+
+_UPSERT_ANALYTICS = """
+INSERT INTO analytics.cafes (
+    source_id, source, object_type, object_id, name, category,
+    latitude, longitude, geometry, geometry_method, tags,
+    source_updated_at, retrieved_at, run_id
+)
+VALUES (
+    %(source_id)s, %(source)s, %(object_type)s, %(object_id)s, %(name)s, %(category)s,
+    %(latitude)s, %(longitude)s,
+    ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326),
+    %(geometry_method)s, %(tags)s, %(source_updated_at)s, %(retrieved_at)s, %(run_id)s
+)
+ON CONFLICT (source_id) DO UPDATE
+SET source = EXCLUDED.source,
+    object_type = EXCLUDED.object_type,
+    object_id = EXCLUDED.object_id,
+    name = EXCLUDED.name,
+    category = EXCLUDED.category,
+    latitude = EXCLUDED.latitude,
+    longitude = EXCLUDED.longitude,
+    geometry = EXCLUDED.geometry,
+    geometry_method = EXCLUDED.geometry_method,
+    tags = EXCLUDED.tags,
+    source_updated_at = EXCLUDED.source_updated_at,
+    retrieved_at = EXCLUDED.retrieved_at,
+    run_id = EXCLUDED.run_id
+RETURNING (xmax = 0) AS inserted
+"""
+
+_COMPLETE_RUN = """
+UPDATE meta.pipeline_runs
+SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+WHERE run_id = %(run_id)s
+"""
+
+
+def normalize_dsn(dsn: str) -> str:
+    """Return a DSN psycopg can open, dropping SQLAlchemy driver suffixes."""
+
+    for prefix in ("postgresql+psycopg://", "postgres+psycopg://"):
+        if dsn.startswith(prefix):
+            return f"postgresql://{dsn[len(prefix) :]}"
+    return dsn
+
+
+def load_run(
+    extraction: ExtractionResult,
+    transformation: TransformationResult,
+    *,
+    dsn: str,
+) -> LoadMetrics:
+    """Persist one run in a single transaction and return its load metrics."""
+
+    for record in transformation.records:
+        if record.run_id != extraction.run_id:
+            raise LoadError(
+                f"Record run_id {record.run_id} does not match extraction run {extraction.run_id}"
+            )
+
+    accepted = transformation.accepted
+    rejected = transformation.rejected
+    inserted = 0
+    updated = 0
+    try:
+        with psycopg.connect(normalize_dsn(dsn)) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    _INSERT_PIPELINE_RUN,
+                    {
+                        "run_id": extraction.run_id,
+                        "source": extraction.source,
+                        "retrieved_at": extraction.retrieved_at,
+                    },
+                )
+                cursor.execute(
+                    _INSERT_SNAPSHOT,
+                    {
+                        "run_id": extraction.run_id,
+                        "query": extraction.query,
+                        "query_hash": extraction.query_hash,
+                        "payload": Jsonb(extraction.payload),
+                        "snapshot_path": str(extraction.raw_path),
+                    },
+                )
+                cursor.execute(_DELETE_STAGING_RUN, {"run_id": extraction.run_id})
+                for record in transformation.records:
+                    cursor.execute(_INSERT_STAGING, _record_parameters(record))
+                for record in accepted:
+                    cursor.execute(_UPSERT_ANALYTICS, _record_parameters(record))
+                    row = cursor.fetchone()
+                    if row is not None and row[0]:
+                        inserted += 1
+                    else:
+                        updated += 1
+                cursor.execute(_COMPLETE_RUN, {"run_id": extraction.run_id})
+    except psycopg.Error as error:
+        raise LoadError(f"Could not persist run {extraction.run_id}: {error}") from error
+
+    return LoadMetrics(
+        accepted=len(accepted),
+        rejected=len(rejected),
+        inserted=inserted,
+        updated=updated,
+    )
+
+
+def _record_parameters(record: NormalizedRecord) -> dict[str, Any]:
+    return {
+        "run_id": record.run_id,
+        "source": record.source,
+        "object_type": record.object_type,
+        "object_id": record.object_id,
+        "source_id": record.source_id,
+        "name": record.name,
+        "category": record.category,
+        "latitude": record.latitude,
+        "longitude": record.longitude,
+        "geometry_method": record.geometry_method.value if record.geometry_method else None,
+        "tags": Jsonb(record.tags),
+        "source_updated_at": record.source_updated_at,
+        "retrieved_at": record.retrieved_at,
+        "validation_status": record.validation_status.value,
+        "rejection_reason": record.rejection_reason.value if record.rejection_reason else None,
+    }
