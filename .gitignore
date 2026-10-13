@@ -13,6 +13,10 @@ data/raw/*
 data/rejected/*
 !data/rejected/.gitkeep
 .codebase-memory/
+# Database dumps from docs/operations.md must stay outside the repo
+*.dump
+*.backup
+/backups/
 .idea/
 .vscode/
 .DS_Store
