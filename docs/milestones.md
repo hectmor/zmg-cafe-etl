@@ -12,8 +12,8 @@ M3 PostgreSQL/PostGIS       COMPLETADO
 M4 Carga idempotente        COMPLETADO
 M5 API FastAPI              COMPLETADO
 M6 Frontend Leaflet         COMPLETADO
-M7 Compose e integración    SIGUIENTE
-M8 Hardening profesional    PENDIENTE
+M7 Compose e integración    COMPLETADO
+M8 Hardening profesional    SIGUIENTE
 ```
 
 ## M0 — Fundación del repositorio
@@ -120,13 +120,17 @@ Validación al cerrar M6: Ruff OK, formato OK y 67 pruebas exitosas — 54 sin B
 
 ## M7 — Compose, integración y CI
 
-**Estado:** siguiente milestone.
+**Estado:** completado.
 
-Agregar servicios reproducibles, pruebas de integración, migraciones en CI y validación de instalación limpia.
+Agregar servicios reproducibles, pruebas de integración, migraciones en CI y validación de instalación limpia. Alcance operativo únicamente: sin funcionalidad nueva en ETL, API ni frontend.
+
+Entregables, cada uno en su rama con PR a `develop`: `Dockerfile` y servicios `api`/`frontend` en `compose.yaml` con healthchecks (issue #20, PR #25); perfil `etl` que documenta el flujo `up → migrate → etl → verificar` (issue #21, PR #27); 5 pruebas de integración contra el stack servido por Compose en `tests/integration/test_stack_compose.py` — health, datos, GeoJSON, frontend y CORS (issue #23, PR #28); `docs/install.md` con el registro de una instalación limpia real desde `git clone` (issue #24, PR #29); `.github/workflows/ci.yml` con los jobs `quality` e `integration` sobre PostgreSQL/PostGIS efímero migrado con Flyway (issue #22, PR #30).
+
+Validación al cerrar M7: Ruff OK, formato OK y 54 pruebas exitosas sin BD (18 omitidas sin variables de entorno: 13 de integración contra PostGIS y 5 del stack servido). Con el stack levantado y `ZMG_TEST_DATABASE_URL`/`ZMG_STACK_API_URL`/`ZMG_STACK_FRONTEND_URL` definidas, la sesión que cerró M7 registró las 13 pruebas de integración y las 5 del stack en verde, además de los jobs `quality` e `integration` del PR #30 en verde; detalle completo en `docs/handoff.md` §5.
 
 ## M8 — Hardening profesional
 
-**Estado:** pendiente del MVP.
+**Estado:** siguiente milestone.
 
 Agregar observabilidad ligera, frescura, rendimiento, respaldo, recuperación y evaluación de ingesta incremental.
 
@@ -141,4 +145,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-La siguiente tarea es **M7 — Compose, integración y CI**. Lee primero `docs/handoff.md`, `AGENTS.md`, `compose.yaml`, `docs/database.md` y la capa `api/`. El alcance es servicios reproducibles, pruebas de integración, migraciones en CI y validación de instalación limpia; no agregues funcionalidad a ETL, API ni frontend. Para ejecutar las pruebas de integración define `ZMG_TEST_DATABASE_URL` apuntando a PostgreSQL/PostGIS local.
+La siguiente tarea es **M8 — Hardening profesional**. Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/roadmap.md` y `docs/database.md`. El alcance (observabilidad ligera, frescura, rendimiento, respaldo, recuperación y evaluación de ingesta incremental) todavía no tiene criterios de aceptación detallados por fase; defínelos antes de delegar tareas a los especialistas.
