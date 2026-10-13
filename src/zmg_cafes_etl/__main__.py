@@ -105,7 +105,13 @@ def main() -> int:
             )
             print(f"Load failed: {error}")
             return 1
-        summary.update({"inserted": metrics.inserted, "updated": metrics.updated})
+        summary.update(
+            {
+                "inserted": metrics.inserted,
+                "updated": metrics.updated,
+                "retired": metrics.retired,
+            }
+        )
 
     logger.info("pipeline completed run_id=%s", result.run_id)
     print(json.dumps(summary, ensure_ascii=False))
