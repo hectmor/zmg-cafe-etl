@@ -134,23 +134,25 @@ Validación al cerrar M7: Ruff OK, formato OK y 54 pruebas exitosas sin BD (18 o
 
 Endurecer operación y visibilidad del stack ya entregado (M1-M7). Alcance operativo únicamente: sin funcionalidad de negocio nueva en ETL, API ni frontend; la ingesta incremental solo se evalúa en esta fase, no se implementa.
 
-### M8.1 — Observabilidad ligera y frescura (issue #40)
+### M8.1 — Observabilidad ligera y frescura (issue #40, completado — PR #46)
 
 Exponer el estado y la frescura de las ejecuciones ETL sin herramientas externas, usando `meta.pipeline_runs`: endpoint de solo lectura con las últimas ejecuciones y el tiempo desde la última `completed`, más logging estructurado en el CLI/loader.
 
 Criterios: el endpoint es de solo lectura; la frescura se calcula sobre datos reales (nunca fabricada si no hay ejecuciones); pruebas unitarias y al menos una de integración contra PostGIS; documentado en `docs/database.md` y `docs/project-spec.md`.
 
-### M8.2 — Rendimiento (issue #41)
+### M8.2 — Rendimiento (issue #41, completado — PR #47)
 
 Confirmar con `EXPLAIN ANALYZE` real que las consultas de `api/db.py` usan los índices existentes (clave única `source_id`, índices GiST de `analytics.cafes`); si aparece un cuello de botella real, agregar un índice vía migración Flyway, nunca SQL manual no rastreado.
 
 Criterios: el plan de ejecución real queda documentado en `docs/database.md`; cualquier índice nuevo está cubierto por una migración versionada.
 
-### M8.3 — Respaldo y recuperación (issue #42)
+### M8.3 — Respaldo y recuperación (issue #42, completado)
 
 Procedimiento documentado y probado de `pg_dump`/restauración del volumen `postgres_data`: respaldo con datos cargados, destrucción desechable del stack, recreación, restauración y comparación de conteos de `analytics.cafes` antes/después.
 
 Criterios: el procedimiento se ejecuta tal cual y reproduce los mismos conteos; ningún dump ni dato productivo se commitea.
+
+Validación real (2026-10-13): respaldo y restauración probados tanto en un proyecto Compose aislado (`zmg-cafe-backup-test`, con ciclo completo `up → migrate → etl → dump → down -v → up → restore`, dos veces: sin `--clean` y con `--clean --if-exists`) como con el dump del stack real restaurado en ese mismo entorno aislado. Conteos y un fingerprint MD5 del contenido de `analytics.cafes` coincidieron en todos los casos (diff vacío). El stack real (`zmg-cafe-etl`) nunca se detuvo ni se recreó durante la prueba — solo se usó `exec`, nunca `up`/`run`/`down`. Detalle completo en `docs/operations.md`.
 
 ### M8.4 — Evaluación de ingesta incremental (issue #43)
 

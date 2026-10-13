@@ -91,3 +91,4 @@ $ curl -o /dev/null -w "%{http_code}" http://localhost:8080/
 
 - Detener sin borrar datos: `docker compose stop`. No ejecutes `docker compose down -v` si quieres conservar el volumen `postgres_data`.
 - Reiniciar el ciclo completo solo requiere repetir `up`, `migrate` y `etl`; `migrate` no reaplica versiones ya aplicadas.
+- Respaldo y restauración del volumen `postgres_data`, con un procedimiento probado contra un proyecto Compose aislado: [`docs/operations.md`](operations.md).
