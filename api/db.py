@@ -115,9 +115,32 @@ class AnalyticsStore:
             },
         }
 
+    def list_runs(self, *, limit: int) -> list[dict[str, Any]]:
+        try:
+            with self._connect() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT run_id, source, status, started_at, completed_at"
+                        " FROM meta.pipeline_runs"
+                        " ORDER BY started_at DESC"
+                        " LIMIT %(limit)s",
+                        {"limit": limit},
+                    )
+                    return [dict(zip(RUN_COLUMNS, row)) for row in cursor.fetchall()]
+        except psycopg.Error as error:
+            raise StoreError(f"Could not list pipeline runs: {error}") from error
+
     def _connect(self) -> psycopg.Connection:
         return psycopg.connect(self._dsn)
 
+
+RUN_COLUMNS = (
+    "run_id",
+    "source",
+    "status",
+    "started_at",
+    "completed_at",
+)
 
 CAFE_COLUMNS = (
     "source_id",

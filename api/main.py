@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import AnalyticsStore, StoreError
-from .schemas import Cafe, CafeList, Health, Stats, cafe_from_row, feature_collection
+from .schemas import (
+    Cafe,
+    CafeList,
+    Freshness,
+    Health,
+    Stats,
+    cafe_from_row,
+    feature_collection,
+    freshness_from_rows,
+)
 
 FRONTEND_ORIGINS = ("http://localhost:8080", "http://127.0.0.1:8080")
 
@@ -81,6 +91,17 @@ def create_app() -> FastAPI:
             return Stats(**store.stats())
         except StoreError as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
+
+    @app.get("/runs", response_model=Freshness)
+    def runs(
+        limit: int = Query(20, ge=1, le=100),
+        store: AnalyticsStore = Depends(get_store),
+    ) -> Freshness:
+        try:
+            rows = store.list_runs(limit=limit)
+        except StoreError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        return freshness_from_rows(rows, now=datetime.now(UTC))
 
     return app
 

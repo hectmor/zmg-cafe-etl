@@ -4,6 +4,7 @@ Every test truncates the four project schemas first so the assertions stay
 deterministic across repeated runs against the same database.
 """
 
+import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -265,6 +266,72 @@ def test_analytics_geometry_is_a_wgs84_point_matching_the_coordinates(
     assert x == pytest.approx(record.longitude)
     assert y == pytest.approx(record.latitude)
     assert geometry_method == record.geometry_method.value
+
+
+def test_load_run_logs_completion_metrics_without_the_raw_payload(
+    extraction: ExtractionResult,
+    source_config: SourceConfig,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    transformation = transform_payload(
+        extraction.payload,
+        source=extraction.source,
+        retrieved_at=extraction.retrieved_at,
+        run_id=extraction.run_id,
+        study_area=source_config.study_area,
+    )
+
+    with caplog.at_level(logging.INFO, logger="zmg_cafes_etl.load"):
+        metrics = load_run(extraction, transformation, dsn=DATABASE_URL)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any(
+        "load_run started" in message and extraction.run_id in message for message in messages
+    )
+    completion_messages = [message for message in messages if "load_run completed" in message]
+    assert completion_messages
+    assert any(
+        extraction.run_id in message
+        and f"accepted={metrics.accepted}" in message
+        and f"inserted={metrics.inserted}" in message
+        for message in completion_messages
+    )
+    assert all(extraction.query not in message for message in messages)
+
+
+def test_load_run_logs_failure_with_error_type_on_a_broken_record(
+    extraction: ExtractionResult,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    broken = NormalizedRecord(
+        source="openstreetmap",
+        object_type="node",
+        object_id=1,
+        source_id="openstreetmap:node:999",
+        name=None,
+        category="cafe",
+        latitude=20.67,
+        longitude=-103.35,
+        geometry={"type": "Point", "coordinates": [-103.35, 20.67]},
+        geometry_method=GeometryMethod.NODE_COORDINATES,
+        tags={},
+        source_updated_at=None,
+        retrieved_at=datetime(2026, 10, 12, tzinfo=UTC),
+        run_id=extraction.run_id,
+        validation_status=ValidationStatus.ACCEPTED,
+        rejection_reason=None,
+    )
+    transformation = TransformationResult(records=(broken,))
+
+    with caplog.at_level(logging.INFO, logger="zmg_cafes_etl.load"):
+        with pytest.raises(LoadError):
+            load_run(extraction, transformation, dsn=DATABASE_URL)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any(
+        "load_run failed" in message and extraction.run_id in message for message in messages
+    )
+    assert not any("load_run completed" in message for message in messages)
 
 
 def test_staging_geometry_is_null_for_rejected_rows(

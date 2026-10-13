@@ -1,5 +1,6 @@
 """Unit tests for the load contract that do not require a database."""
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -77,6 +78,24 @@ def test_load_run_rejects_records_from_another_run() -> None:
 
     with pytest.raises(LoadError, match="does not match extraction run"):
         load_run(_extraction(run_id), transformation, dsn="postgresql://localhost:5432/db")
+
+
+def test_load_run_logs_start_and_failure_without_leaking_the_dsn(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    run_id = str(uuid4())
+    other_record = _accepted_record(str(uuid4()))
+    transformation = TransformationResult(records=(other_record,))
+    secret_dsn = "postgresql://user:s3cr3t@localhost:5432/db"
+
+    with caplog.at_level(logging.INFO, logger="zmg_cafes_etl.load"):
+        with pytest.raises(LoadError, match="does not match extraction run"):
+            load_run(_extraction(run_id), transformation, dsn=secret_dsn)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("load_run started" in message and run_id in message for message in messages)
+    assert any("load_run failed" in message and "LoadError" in message for message in messages)
+    assert all("s3cr3t" not in message for message in messages)
 
 
 def test_load_run_can_see_rejected_duplicates_in_the_same_run() -> None:

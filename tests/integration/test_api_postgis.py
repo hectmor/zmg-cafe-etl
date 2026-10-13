@@ -143,3 +143,30 @@ def test_stats_agree_with_the_loaded_run(client: TestClient, loaded_run: tuple[s
     assert body["with_name"] + body["without_name"] == accepted
     assert sum(body["by_object_type"].values()) == accepted
     assert sum(body["by_geometry_method"].values()) == accepted
+
+
+def test_runs_reports_the_loaded_execution_as_completed(
+    client: TestClient, loaded_run: tuple[str, int]
+) -> None:
+    run_id, _ = loaded_run
+
+    response = client.get("/runs")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["runs"]) == 1
+    assert body["runs"][0]["run_id"] == run_id
+    assert body["runs"][0]["status"] == "completed"
+    assert body["runs"][0]["completed_at"] is not None
+    assert body["last_completed_at"] is not None
+    assert body["seconds_since_last_completed"] >= 0
+
+
+def test_runs_reports_no_freshness_without_any_execution(client: TestClient) -> None:
+    response = client.get("/runs")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["runs"] == []
+    assert body["last_completed_at"] is None
+    assert body["seconds_since_last_completed"] is None
