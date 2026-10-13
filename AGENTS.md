@@ -47,6 +47,7 @@ El protocolo completo está en `docs/agent-workflows/task-protocol.md` y la prá
 - No fabricar nombres, límites municipales, timestamps de fuente ni conteos.
 - Todo cambio de comportamiento requiere actualizar documentación y pruebas.
 - Los commits deben seguir `docs/convencion-commits.md`, usar mensajes en inglés y no incluir trailers de coautoría de Claude.
+- Desarrollar cada fase en una rama dedicada que se integre a `develop` mediante un PR.
 - Reportar comandos y resultados reales.
 - No versionar `.env`, secretos, snapshots raw grandes ni artefactos generados.
 
