@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.14"
 license = "MIT"
 authors = [{ name = "ZMG Cafés ETL contributors" }]
-dependencies = ["PyYAML>=6.0,<7.0"]
+dependencies = ["PyYAML>=6.0,<7.0", "psycopg[binary]>=3.2,<4.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0,<9.0", "ruff>=0.9,<1.0"]
