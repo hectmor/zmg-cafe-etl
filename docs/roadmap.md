@@ -14,7 +14,7 @@ El estado operativo detallado y el punto de reanudación están en [milestones.m
 | 5 | API FastAPI y contrato GeoJSON | Completado |
 | 6 | Frontend Leaflet | Completado |
 | 7 | Compose reproducible, integración y CI | Completado |
-| 8 | Observabilidad y hardening | Siguiente |
+| 8 | Observabilidad y hardening | En curso |
 
 ## Definition of Done
 
