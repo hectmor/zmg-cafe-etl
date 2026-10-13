@@ -1,3 +1,36 @@
-# This checkpoint intentionally has no services yet. PostGIS will be added
-# together with the data contract and migration in the database milestone.
-services: {}
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zmg_cafes}
+      POSTGRES_USER: ${POSTGRES_USER:-zmg_cafes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zmg_cafes_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  flyway:
+    image: redgate/flyway:13.6.0
+    profiles: ["migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-zmg_cafes}
+      FLYWAY_USER: ${POSTGRES_USER:-zmg_cafes}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-zmg_cafes_dev}
+      FLYWAY_SCHEMAS: meta
+      FLYWAY_CREATE_SCHEMAS: "true"
+      FLYWAY_LOCATIONS: filesystem:/flyway/migrations
+    volumes:
+      - ./db/migrations:/flyway/migrations:ro
+    command: migrate
+
+volumes:
+  postgres_data:
