@@ -59,6 +59,22 @@ opencode run --agent qa-data-quality-engineer --dir /home/hector/Documents/datzi
 
 Para delegar desde la sesión Lead se invoca al especialista con la herramienta Task (`@qa-data-quality-engineer`, `@etl-engineer` o `@database-engineer`) y se conserva su reporte para reconciliación. Los permisos de cada agente (lectura/escritura y aprobación de comandos) están en el frontmatter de `.opencode/agents/`; ver el mapeo en `docs/agent-workflows/architecture.md`.
 
+## Cómo iniciarlo en Claude Code
+
+Los agentes traducidos viven en `.claude/agents/` y Claude Code los descubre automáticamente al iniciar una sesión en este repositorio; no requieren copia a configuración global. El Lead Engineer es la sesión primaria, guiada por `AGENTS.md` y `docs/agent-workflows/architecture.md` como contexto.
+
+Para delegar desde la sesión Lead se invoca al especialista con la herramienta Agent, indicando el rol en `subagent_type`. Una revisión read-only con el agente QA tiene esta forma:
+
+```text
+Agent({
+  subagent_type: "qa-data-quality-engineer",
+  description: "Revisión read-only de CONTRACT-001",
+  prompt: "Tarea CONTRACT-001: lee AGENTS.md, docs/project-spec.md, config/sources.yaml y docs/agent-workflows/first-exercise.md; revisa el contrato de café sin modificar archivos."
+})
+```
+
+El agente QA no tiene `Edit` ni `Write` en su frontmatter (`.claude/agents/qa-data-quality-engineer.md`), así que no puede modificar archivos aunque la tarea lo pidiera por error. Para una implementación posterior se invocaría `etl-engineer` o `database-engineer`, que sí incluyen `Edit`/`Write`/`Bash` en su `tools`. El mapeo completo de permisos está en `docs/agent-workflows/architecture.md`.
+
 ## Secuencia de colaboración
 
 1. El Lead asigna `CONTRACT-001-ETL`: proponer campos, identidad, fixture y reglas de rechazo.

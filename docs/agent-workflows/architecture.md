@@ -62,3 +62,24 @@ Notas del mapeo:
 - `approval_policy = "on-request"` se traduce a `bash: ask`: cada comando requiere confirmación del usuario.
 - opencode no tiene sandbox de filesystem para `bash`. El modo `read-only` de QA se garantiza con `edit: deny` (bloquea `write`, `edit` y `apply_patch`) más la aprobación manual de comandos; un comando `bash` aprobado podría escribir fuera de las herramientas de edición. Es la única divergencia conocida frente al sandbox de Codex.
 - `mode: all` permite usar cada especialista como agente primario (Tab / `opencode run --agent`) y como subagente (`@mención` o herramienta Task).
+
+## Equivalencia con Claude Code
+
+Los mismos roles están traducidos al formato nativo de subagentes de Claude Code en `.claude/agents/` (`etl-engineer.md`, `database-engineer.md`, `qa-data-quality-engineer.md`), descubiertos automáticamente al iniciar una sesión en este repositorio e invocables con la herramienta Agent/Task (`subagent_type`). El contenido de rol es equivalente al de `docs/agent-workflows/agents/`.
+
+El rol Lead Engineer tampoco tiene perfil propio en Claude Code: lo ejerce la sesión primaria, guiada por `AGENTS.md` y este documento, igual que en Codex y opencode.
+
+Mapeo de perfiles TOML de Codex a frontmatter de Claude Code:
+
+| Perfil Codex | `model_reasoning_effort` | `approval_policy` | `sandbox_mode` | Equivalente Claude Code |
+|---|---|---|---|---|
+| `zmg-etl` | `medium` | `on-request` | `workspace-write` | `tools: Read, Grep, Glob, Edit, Write, Bash`, `model: sonnet` |
+| `zmg-db` | `medium` | `on-request` | `workspace-write` | `tools: Read, Grep, Glob, Edit, Write, Bash`, `model: sonnet` |
+| `zmg-qa` | `low` | `on-request` | `read-only` | `tools: Read, Grep, Glob, Bash`, `model: sonnet` |
+
+Notas del mapeo:
+
+- Claude Code no tiene un campo de frontmatter para `reasoning effort` por agente; el control equivalente es el parámetro `effort` que puede pasarse al invocar el subagente con la herramienta Agent, o el modo de razonamiento de la sesión. No se fabrica un campo inexistente en el frontmatter solo para imitar a opencode.
+- Claude Code tampoco tiene un sandbox de filesystem ni una política `approval_policy` por agente: la confirmación de comandos (`bash: ask` en opencode) la controla el modo de permisos de la sesión/proyecto, no el frontmatter del subagente.
+- El modo `read-only` de QA se garantiza omitiendo `Edit` y `Write` de `tools`: el subagente no tiene capacidad de escritura aunque la sesión apruebe un comando. Es una restricción más estricta que la de opencode (que solo bloquea las herramientas de edición, no `bash`), porque Claude Code resuelve `tools` como lista de permitidos explícita en vez de permisos por tipo de acción.
+- Un archivo en `.claude/agents/` lo puede invocar tanto la sesión primaria (como subagente vía Agent/Task) como, si el proyecto lo permite, una sesión dedicada a ese rol; no existe un equivalente directo a `opencode run --agent` en el CLI local verificado.
