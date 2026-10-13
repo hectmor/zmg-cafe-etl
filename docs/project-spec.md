@@ -6,7 +6,7 @@ Demostrar, de forma educativa y reproducible, cómo observaciones públicas de c
 
 ## Estado y alcance actual
 
-El repositorio completó la extracción raw, la transformación validada, el contrato de base de datos, la carga idempotente, la API FastAPI y el frontend Leaflet: incluye configuración de fuente, fixture offline, extractor con snapshots y metadatos, CLI, registros normalizados, advertencias, rechazos, deduplicación determinista, migraciones Flyway para PostgreSQL/PostGIS, carga transaccional con upsert en analytics, endpoints consumer-facing con paginación, detalle, estadísticas y GeoJSON, y un mapa con búsqueda, filtros, marcadores y atribución.
+El repositorio completó la extracción raw, la transformación validada, el contrato de base de datos, la carga idempotente, la API FastAPI, el frontend Leaflet, Compose/CI (M7) y el primer tramo de hardening (M8.1): incluye configuración de fuente, fixture offline, extractor con snapshots y metadatos, CLI, registros normalizados, advertencias, rechazos, deduplicación determinista, migraciones Flyway para PostgreSQL/PostGIS, carga transaccional con upsert en analytics, endpoints consumer-facing con paginación, detalle, estadísticas, GeoJSON, estado y frescura de ejecuciones (`GET /runs`), y un mapa con búsqueda, filtros, marcadores y atribución.
 
 ## Contrato compartido inicial
 

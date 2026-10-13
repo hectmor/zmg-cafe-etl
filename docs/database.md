@@ -17,6 +17,10 @@ docker compose --profile migrate run --rm flyway info
 
 La migración inicial crea los schemas `meta`, `raw`, `staging` y `analytics`, junto con geometrías `Point` en SRID 4326 e índices GiST. La migración `V2__partial_unique_accepted_identity.sql` sustituye la unicidad total de `(run_id, source_id)` en staging por un índice único parcial: las filas aceptadas siguen siendo únicas por ejecución y los rechazos por identidad duplicada quedan auditables. El loader de `src/zmg_cafes_etl/load.py` escribe cada ejecución en una sola transacción: `meta.pipeline_runs`, `raw.overpass_snapshots`, todas las filas de `staging.cafe_records` y solo las aceptadas en `analytics.cafes` mediante upsert idempotente por `source_id`.
 
+## Observabilidad y frescura (M8.1)
+
+`GET /runs` expone, de solo lectura, las últimas ejecuciones registradas en `meta.pipeline_runs` (`run_id`, `source`, `status`, `started_at`, `completed_at`, con `limit` validado entre 1 y 100) y una frescura derivada: `last_completed_at` y `seconds_since_last_completed`. Ambos campos quedan en `null` cuando todavía no hay ninguna ejecución con `status = 'completed'`; nunca se fabrica un valor. `api/db.py` implementa `AnalyticsStore.list_runs` sobre la misma conexión de solo lectura que el resto de la capa; `api/schemas.py` calcula la frescura en `freshness_from_rows` a partir de las filas reales, no de un reloj interno de la base.
+
 ## Pruebas de integración
 
 Las pruebas de `tests/integration/` requieren un PostgreSQL/PostGIS accesible y se omiten si no hay URL configurada. Cada prueba limpia los cuatro schemas antes de ejecutarse, así que usa una base de desarrollo, nunca una productiva:

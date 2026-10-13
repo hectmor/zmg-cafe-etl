@@ -32,9 +32,16 @@ def _row(**overrides: Any) -> dict[str, Any]:
 
 
 class FakeStore:
-    def __init__(self, rows: list[dict[str, Any]], *, reachable: bool = True) -> None:
+    def __init__(
+        self,
+        rows: list[dict[str, Any]],
+        *,
+        reachable: bool = True,
+        runs: list[dict[str, Any]] | None = None,
+    ) -> None:
         self.rows = rows
         self.reachable = reachable
+        self.runs = runs or []
 
     def ping(self) -> bool:
         return self.reachable
@@ -56,6 +63,9 @@ class FakeStore:
             "by_object_type": {"node": len(self.rows)},
             "by_geometry_method": {"node_coordinates": len(self.rows)},
         }
+
+    def list_runs(self, *, limit: int) -> list[dict[str, Any]]:
+        return self.runs[:limit]
 
 
 def _client(store: FakeStore) -> TestClient:
@@ -156,3 +166,57 @@ def test_stats_summarize_the_analytics_layer() -> None:
         "by_object_type": {"node": 2},
         "by_geometry_method": {"node_coordinates": 2},
     }
+
+
+def _run(**overrides: Any) -> dict[str, Any]:
+    run: dict[str, Any] = {
+        "run_id": uuid4(),
+        "source": "openstreetmap",
+        "status": "completed",
+        "started_at": datetime(2026, 10, 13, 11, 0, tzinfo=UTC),
+        "completed_at": datetime(2026, 10, 13, 11, 5, tzinfo=UTC),
+    }
+    run.update(overrides)
+    return run
+
+
+def test_runs_reports_the_most_recent_executions_and_freshness() -> None:
+    response = _client(FakeStore([_row()], runs=[_run()])).get("/runs")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["runs"]) == 1
+    assert body["runs"][0]["status"] == "completed"
+    assert body["last_completed_at"] == "2026-10-13T11:05:00Z"
+    assert body["seconds_since_last_completed"] >= 0
+
+
+def test_runs_does_not_fabricate_freshness_when_there_are_no_runs() -> None:
+    response = _client(FakeStore([_row()], runs=[])).get("/runs")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["runs"] == []
+    assert body["last_completed_at"] is None
+    assert body["seconds_since_last_completed"] is None
+
+
+def test_runs_ignores_a_started_run_that_has_not_completed_for_freshness() -> None:
+    response = _client(
+        FakeStore(
+            [_row()],
+            runs=[_run(status="started", completed_at=None)],
+        )
+    ).get("/runs")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["last_completed_at"] is None
+    assert body["seconds_since_last_completed"] is None
+
+
+def test_runs_rejects_out_of_range_limit() -> None:
+    client = _client(FakeStore([_row()]))
+
+    for params in ({"limit": 0}, {"limit": 101}):
+        assert client.get("/runs", params=params).status_code == 422
