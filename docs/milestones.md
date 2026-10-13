@@ -13,7 +13,7 @@ M4 Carga idempotente        COMPLETADO
 M5 API FastAPI              COMPLETADO
 M6 Frontend Leaflet         COMPLETADO
 M7 Compose e integración    COMPLETADO
-M8 Hardening profesional    EN CURSO
+M8 Hardening profesional    COMPLETADO
 ```
 
 ## M0 — Fundación del repositorio
@@ -130,7 +130,7 @@ Validación al cerrar M7: Ruff OK, formato OK y 54 pruebas exitosas sin BD (18 o
 
 ## M8 — Hardening profesional
 
-**Estado:** en curso.
+**Estado:** completado.
 
 Endurecer operación y visibilidad del stack ya entregado (M1-M7). Alcance operativo únicamente: sin funcionalidad de negocio nueva en ETL, API ni frontend; la ingesta incremental solo se evalúa en esta fase, no se implementa.
 
@@ -154,11 +154,13 @@ Criterios: el procedimiento se ejecuta tal cual y reproduce los mismos conteos; 
 
 Validación real (2026-10-13): respaldo y restauración probados tanto en un proyecto Compose aislado (`zmg-cafe-backup-test`, con ciclo completo `up → migrate → etl → dump → down -v → up → restore`, dos veces: sin `--clean` y con `--clean --if-exists`) como con el dump del stack real restaurado en ese mismo entorno aislado. Conteos y un fingerprint MD5 del contenido de `analytics.cafes` coincidieron en todos los casos (diff vacío). El stack real (`zmg-cafe-etl`) nunca se detuvo ni se recreó durante la prueba — solo se usó `exec`, nunca `up`/`run`/`down`. Detalle completo en `docs/operations.md`.
 
-### M8.4 — Evaluación de ingesta incremental (issue #43)
+### M8.4 — Evaluación de ingesta incremental (issue #43, completado)
 
 ADR-005 que compare la re-extracción completa actual (con deduplicación determinista de M2 y upsert idempotente de M4) contra filtros incrementales de Overpass (`newer`/`changed`), con una decisión explícita: adoptar, descartar o posponer. Sin implementación en este issue.
 
 Criterios: ADR registrado en `docs/decisions/` siguiendo el formato de ADR-001 a ADR-004; decisión justificada y no dejada abierta.
+
+Decisión (`docs/decisions/ADR-005-incremental-ingestion.md`): **descartar** la ingesta incremental mientras el bbox, el volumen y la ausencia de restricciones de cuota se mantengan como hoy. Verificado contra la documentación oficial de Overrpass QL/Augmented Diffs (citas en el ADR), no asumido. La investigación detectó un gap real no relacionado con la decisión en sí: `load_run` nunca retira de `analytics.cafes` los `source_id` que desaparecen de la fuente — registrado como issue #49, fuera de M8.
 
 ## Punto de reanudación
 
@@ -171,4 +173,4 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-La siguiente tarea es **M8 — Hardening profesional** (milestone de GitHub, issues #40-#44). Lee primero `docs/handoff.md`, `AGENTS.md`, `docs/roadmap.md` y `docs/database.md`. Los cuatro sub-milestones (M8.1-M8.4) ya tienen alcance y criterios de aceptación cerrados arriba; cada uno se delega en su propia rama con PR a `develop`.
+M8 — Hardening profesional está completo (issues #40-#44, PRs #46-#48 y este). Queda abierto el issue #49 (`analytics.cafes` no retira cafés desaparecidos de la fuente), encontrado durante M8.4 pero fuera de su alcance. Todavía no hay un milestone M9 definido; antes de abrir uno nuevo, revisa `docs/roadmap.md` y decide con el Lead si el siguiente paso es #49, cerrar la deuda de `docs/agent-workflows/` (#18, #19) o un alcance nuevo.
