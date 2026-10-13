@@ -55,6 +55,29 @@ services:
       timeout: 5s
       retries: 12
 
+  etl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["etl"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zmg_cafes}:${POSTGRES_PASSWORD:-zmg_cafes_dev}@db:5432/${POSTGRES_DB:-zmg_cafes}
+    volumes:
+      - ./config:/app/config:ro
+      - ./tests/fixtures:/app/tests/fixtures:ro
+      - ./data:/app/data
+    command:
+      [
+        "python",
+        "-m",
+        "zmg_cafes_etl",
+        "--offline",
+        "tests/fixtures/overpass_cafes_sample.json",
+      ]
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     image: nginx:1.27-alpine
     volumes:
