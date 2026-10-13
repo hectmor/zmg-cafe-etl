@@ -50,6 +50,7 @@ jobs:
             -e FLYWAY_PASSWORD="zmg_cafes_ci" \
             -e FLYWAY_SCHEMAS="meta" \
             -e FLYWAY_CREATE_SCHEMAS="true" \
+            -e FLYWAY_LOCATIONS="filesystem:/flyway/migrations" \
             redgate/flyway:13.6.0 migrate
       - name: Run integration tests
         env:
