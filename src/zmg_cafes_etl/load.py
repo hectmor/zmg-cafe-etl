@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,6 +11,8 @@ from psycopg.types.json import Jsonb
 
 from .extract import ExtractionResult
 from .models import NormalizedRecord, TransformationResult
+
+logger = logging.getLogger(__name__)
 
 
 class LoadError(RuntimeError):
@@ -128,11 +131,23 @@ def load_run(
 ) -> LoadMetrics:
     """Persist one run in a single transaction and return its load metrics."""
 
+    logger.info(
+        "load_run started run_id=%s source=%s",
+        extraction.run_id,
+        extraction.source,
+    )
+
     for record in transformation.records:
         if record.run_id != extraction.run_id:
-            raise LoadError(
+            error = LoadError(
                 f"Record run_id {record.run_id} does not match extraction run {extraction.run_id}"
             )
+            logger.error(
+                "load_run failed run_id=%s error_type=%s",
+                extraction.run_id,
+                type(error).__name__,
+            )
+            raise error
 
     accepted = transformation.accepted
     rejected = transformation.rejected
@@ -171,14 +186,28 @@ def load_run(
                         updated += 1
                 cursor.execute(_COMPLETE_RUN, {"run_id": extraction.run_id})
     except psycopg.Error as error:
+        logger.error(
+            "load_run failed run_id=%s error_type=%s",
+            extraction.run_id,
+            type(error).__name__,
+        )
         raise LoadError(f"Could not persist run {extraction.run_id}: {error}") from error
 
-    return LoadMetrics(
+    metrics = LoadMetrics(
         accepted=len(accepted),
         rejected=len(rejected),
         inserted=inserted,
         updated=updated,
     )
+    logger.info(
+        "load_run completed run_id=%s accepted=%d rejected=%d inserted=%d updated=%d",
+        extraction.run_id,
+        metrics.accepted,
+        metrics.rejected,
+        metrics.inserted,
+        metrics.updated,
+    )
+    return metrics
 
 
 def _record_parameters(record: NormalizedRecord) -> dict[str, Any]:
