@@ -1,12 +1,12 @@
 # Flujo de datos
 
-## Flujo planeado
+## Estado del flujo
 
-1. Construir una consulta Overpass desde `config/sources.yaml`.
-2. Obtener un JSON con elementos `node`, `way` y `relation` cuando aplique.
-3. Guardar el payload original junto con `run_id`, consulta/hash, timestamps y fuente.
-4. Convertir cada elemento a un registro normalizado.
-5. Separar registros válidos y rechazados con razones explícitas.
+1. Construir una consulta Overpass desde `config/sources.yaml`. **Implementado.**
+2. Obtener un JSON con elementos `node`, `way` y `relation` cuando aplique. **Implementado** para modos offline y live.
+3. Guardar el payload original junto con `run_id`, consulta/hash, timestamps y fuente. **Implementado.**
+4. Convertir cada elemento a un registro normalizado. **Implementado** en `transform_payload`.
+5. Separar registros válidos y rechazados con razones explícitas. **Implementado** en `TransformationResult`; la persistencia queda pendiente.
 6. Cargar staging y después analytics dentro de límites transaccionales documentados.
 7. Servir solo la capa consumer-facing a la API.
 

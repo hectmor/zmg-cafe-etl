@@ -6,7 +6,7 @@ Demostrar, de forma educativa y reproducible, cómo observaciones públicas de c
 
 ## Estado y alcance actual
 
-El repositorio está en la fundación de Fase 0 y contrato inicial de Fase 1. Existen configuración de fuente, fixture offline, documentación y pruebas de configuración. No están implementados aún extractor, transformación, base de datos, API ni frontend.
+El repositorio completó la extracción raw, la transformación validada y el contrato de base de datos: incluye configuración de fuente, fixture offline, extractor con snapshots y metadatos, CLI, registros normalizados, advertencias, rechazos, deduplicación determinista y migraciones Flyway para PostgreSQL/PostGIS. La carga, API y frontend aún no están implementados.
 
 ## Contrato compartido inicial
 
@@ -22,10 +22,11 @@ Los estados pertenecen al resultado normalizado/staging: `accepted`, `accepted_w
 
 1. Fuente y extracción raw.
 2. Validación y transformación.
-3. PostgreSQL/PostGIS y carga idempotente.
-4. FastAPI.
-5. Frontend Leaflet.
-6. Compose, pruebas de integración y CI.
-7. Observabilidad y hardening.
+3. PostgreSQL/PostGIS y migraciones Flyway.
+4. Carga idempotente.
+5. FastAPI.
+6. Frontend Leaflet.
+7. Compose, pruebas de integración y CI.
+8. Observabilidad y hardening.
 
 No se comienza una fase dependiente hasta que su contrato de entrada y aceptación hayan sido revisados.

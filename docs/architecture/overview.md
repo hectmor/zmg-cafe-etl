@@ -17,8 +17,8 @@ flowchart LR
   API --> UI[Leaflet frontend]
 ```
 
-La base de datos tendrá capas lógicas `raw`, `staging`, `analytics` y `meta`. El checkpoint actual solo define la fuente y no crea aún esas capas.
+La base de datos usa las capas lógicas `raw`, `staging`, `analytics` y `meta`. La migración inicial de Flyway crea sus tablas y constraints; M4 conectará la transformación con esa persistencia.
 
 ## Arquitectura lógica versus despliegue físico
 
-La arquitectura lógica muestra responsabilidades y flujo de datos, sin afirmar procesos o contenedores concretos. El diagrama físico futuro mostrará contenedores Compose para PostGIS, ETL, API y servidor frontend; no se implementa todavía para evitar infraestructura antes del contrato.
+Compose implementa el contenedor local de PostGIS y el servicio puntual de Flyway. Los contenedores de ETL, API y frontend siguen fuera de alcance hasta sus milestones.
