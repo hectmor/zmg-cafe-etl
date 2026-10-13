@@ -17,6 +17,23 @@ docker compose --profile migrate run --rm flyway info
 
 La migración inicial crea los schemas `meta`, `raw`, `staging` y `analytics`, junto con geometrías `Point` en SRID 4326 e índices GiST. La migración `V2__partial_unique_accepted_identity.sql` sustituye la unicidad total de `(run_id, source_id)` en staging por un índice único parcial: las filas aceptadas siguen siendo únicas por ejecución y los rechazos por identidad duplicada quedan auditables. La migración `V3__analytics_cafes_stats_indexes.sql` agrega dos índices B-tree de una sola columna sobre `analytics.cafes(object_type)` y `analytics.cafes(geometry_method)`, exclusivamente para acelerar los `GROUP BY` de `AnalyticsStore.stats()` (ver "Rendimiento (M8.2)" abajo). El loader de `src/zmg_cafes_etl/load.py` escribe cada ejecución en una sola transacción: `meta.pipeline_runs`, `raw.overpass_snapshots`, todas las filas de `staging.cafe_records` y solo las aceptadas en `analytics.cafes` mediante upsert idempotente por `source_id`.
 
+## Retiro de registros ausentes (M8.4 / issue #49, ADR-006)
+
+Después de los upserts de una corrida, `load_run` borra físicamente de `analytics.cafes` los `source_id` de la misma `source` que no estén entre los aceptados de esa corrida (desaparecidos de OSM o rechazados en esta corrida). Un lock advisory (`pg_advisory_xact_lock` sobre la `source`) serializa cargas concurrentes de la misma fuente. Si la corrida no aceptó ningún registro, no se borra nada — se asume fallo de la fuente, no que desaparecieron todos los cafés. Invariante resultante: tras una carga exitosa, todas las filas de `analytics.cafes` de una `source` comparten el `run_id` de la última corrida cargada para esa fuente.
+
+El historial no vive en `analytics.cafes`: para ver cuándo se vio por última vez un café que ya no está vigente, consulta `staging.cafe_records` (append-only por corrida):
+
+```sql
+SELECT DISTINCT ON (s.source_id) s.source_id, s.name, s.run_id, s.retrieved_at AS last_seen_at
+FROM staging.cafe_records s
+WHERE s.source = 'openstreetmap'
+  AND s.validation_status IN ('accepted', 'accepted_with_warning')
+  AND NOT EXISTS (SELECT 1 FROM analytics.cafes a WHERE a.source_id = s.source_id)
+ORDER BY s.source_id, s.retrieved_at DESC;
+```
+
+`LoadMetrics` y el resumen JSON del CLI ganan el campo `retired` (cuenta de filas borradas en esa corrida); es una adición compatible, ningún campo existente cambió.
+
 ## Observabilidad y frescura (M8.1)
 
 `GET /runs` expone, de solo lectura, las últimas ejecuciones registradas en `meta.pipeline_runs` (`run_id`, `source`, `status`, `started_at`, `completed_at`, con `limit` validado entre 1 y 100) y una frescura derivada: `last_completed_at` y `seconds_since_last_completed`. Ambos campos quedan en `null` cuando todavía no hay ninguna ejecución con `status = 'completed'`; nunca se fabrica un valor. `api/db.py` implementa `AnalyticsStore.list_runs` sobre la misma conexión de solo lectura que el resto de la capa; `api/schemas.py` calcula la frescura en `freshness_from_rows` a partir de las filas reales, no de un reloj interno de la base.

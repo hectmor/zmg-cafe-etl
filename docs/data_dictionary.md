@@ -24,3 +24,5 @@ Un registro sin nombre puede ser válido con `accepted_with_warning`. Un registr
 La deduplicación conserva el primer elemento recibido para cada `source_id` y rechaza los posteriores con `duplicate_source_identity`; por eso el resultado es determinista para un mismo payload ordenado.
 
 Razones iniciales: `malformed_response`, `missing_object_type`, `missing_object_id`, `invalid_object_id`, `missing_coordinates`, `invalid_latitude`, `invalid_longitude`, `missing_way_or_relation_center`, `unsupported_geometry`, `outside_study_area` y `duplicate_source_identity`.
+
+`analytics.cafes` contiene exactamente los `source_id` aceptados en la última corrida cargada de su `source`: un `source_id` ausente o rechazado en la corrida actual se retira físicamente (ADR-006, issue #49), aunque haya estado aceptado en una corrida anterior. `run_id` en `analytics.cafes` es siempre el de la última corrida cargada para esa fuente, nunca el de la primera vez que se vio el registro. El historial de qué valores tenía un registro retirado vive en `staging.cafe_records`, que es append-only por corrida y nunca se poda.
