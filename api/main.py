@@ -5,9 +5,12 @@ from __future__ import annotations
 import os
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from .db import AnalyticsStore, StoreError
 from .schemas import Cafe, CafeList, Health, Stats, cafe_from_row, feature_collection
+
+FRONTEND_ORIGINS = ("http://localhost:8080", "http://127.0.0.1:8080")
 
 
 def get_store() -> AnalyticsStore:
@@ -19,6 +22,12 @@ def get_store() -> AnalyticsStore:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="ZMG Cafés API", version="0.1.0")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(FRONTEND_ORIGINS),
+        allow_methods=["GET"],
+        allow_headers=["*"],
+    )
 
     @app.get("/health", response_model=Health)
     def health(store: AnalyticsStore = Depends(get_store)) -> Health:
