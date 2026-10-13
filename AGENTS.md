@@ -14,6 +14,7 @@
 - `docs/`: arquitectura, decisiones, tutoriales, calidad y operación.
 - `tests/`: pruebas unitarias, de integración y fixtures deterministas.
 - `docs/agent-workflows/`: protocolo de delegación, perfiles y ejercicios multiagente.
+- `.opencode/agents/`: agentes opencode equivalentes a los roles de `docs/agent-workflows/agents/`.
 - `docs/convencion-commits.md`: formato y reglas para mensajes de commit.
 
 ## Comandos
@@ -33,7 +34,7 @@ El Lead Engineer conserva la responsabilidad de alcance, contratos, integración
 
 Cada entrega debe indicar archivos modificados, decisiones, comandos ejecutados, resultados reales, limitaciones, preguntas abiertas y posibles impactos en otros componentes. En un filesystem compartido no se permiten ediciones concurrentes del mismo archivo; para cambios paralelos use worktrees aislados o limite a los agentes a revisión de solo lectura.
 
-El protocolo completo está en `docs/agent-workflows/task-protocol.md` y la práctica inicial en `docs/agent-workflows/first-exercise.md`.
+El protocolo completo está en `docs/agent-workflows/task-protocol.md` y la práctica inicial en `docs/agent-workflows/first-exercise.md`. Los especialistas se lanzan con los perfiles de `docs/agent-workflows/profiles/` (Codex CLI) o con los agentes de `.opencode/agents/` (opencode); el rol y el protocolo son los mismos.
 
 ## Reglas de desarrollo
 
