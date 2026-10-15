@@ -30,6 +30,10 @@ flowchart LR
 
 Pueden correr en paralelo revisiones read-only del contrato de fuente por ETL, DB y QA. No pueden correr en paralelo dos ediciones del mismo contrato, migración o archivo. La implementación de DB depende del contrato aceptado; API depende del esquema consumer-facing; frontend depende del contrato API.
 
+## Rama y PR
+
+Cada tarea delegada se entrega en una rama por issue (`tipo/issue-N-slug`) desde `develop`, nunca una rama por fase. El PR va a `develop`, referencia `Closes #N` y lleva la metadata exigida en `AGENTS.md` (assignee `hectmor`, label del issue, milestone correspondiente, proyecto GitHub `zmg-cafe`).
+
 ## Interfaces y conflictos
 
 Las interfaces se acuerdan primero en documentos versionados. Si una recomendación contradice otra, el Lead compara evidencia, impacto y criterios; no resuelve el conflicto ocultándolo en código. La decisión final se registra en un ADR o en la especificación del proyecto.
