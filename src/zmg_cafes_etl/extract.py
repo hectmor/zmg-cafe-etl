@@ -86,7 +86,11 @@ def extract_live(
         request = urllib.request.Request(
             source_config.endpoint,
             data=body,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                # overpass-api.de rejects urllib's default UA with 406 Not Acceptable.
+                "User-Agent": "zmg-cafes-etl/0.1 (+https://github.com/hectmor/zmg-cafe-etl)",
+            },
             method="POST",
         )
         try:

@@ -104,6 +104,7 @@ def test_extract_live_posts_the_query_as_form_data(tmp_path, source_config, monk
     assert urllib.parse.parse_qs(calls[0][0].data.decode("utf-8")) == {
         "data": [render_query(source_config)]
     }
+    assert calls[0][0].get_header("User-agent")
 
 
 def test_extract_live_retries_transport_errors(tmp_path, source_config, monkeypatch) -> None:
