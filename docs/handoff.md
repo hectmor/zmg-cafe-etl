@@ -81,7 +81,8 @@ Esquemas: `meta.pipeline_runs` (ejecución), `raw.overpass_snapshots` (payload c
 ## 8. Problemas conocidos y limitaciones
 
 - **#26 (bug):** `api/db.py` conecta con `psycopg.connect` sin normalizar el sufijo `postgresql+psycopg://` que documentan `.env.example` y `docs/database.md`; con ese valor, `/health` queda en 503. El loader sí lo normaliza (`normalize_dsn`). Repro y aceptación en el issue.
-- **#19:** los agentes opencode (`etl-engineer`, `database-engineer`, `qa-data-quality-engineer`) existen en `.opencode/agents/`, pero no se ha verificado que una sesión los cargue y use.
+- **#19 (sigue abierto, solo opencode):** los agentes opencode (`etl-engineer`, `database-engineer`, `qa-data-quality-engineer`) existen en `.opencode/agents/`, pero no se ha verificado que una sesión los cargue y use. El equivalente de Claude Code sí quedó verificado (ver más abajo); #19 queda acotado a opencode.
+- **Claude Code — agentes verificados (2026-10-15):** una sesión headless nueva (`claude -p ...`) sobre el checkout con `.claude/agents/` sincronizado listó `database-engineer`, `etl-engineer` y `qa-data-quality-engineer` como `subagent_type` disponibles y pudo invocar `etl-engineer` con éxito (leyó `src/zmg_cafes_etl/extract.py` y reportó correctamente que `extract_live` hace la petición HTTP live a Overpass). Nota operativa: una sesión en curso no redescubre `.claude/agents/` si el archivo llega al working tree después de que la sesión ya inició (se necesita una sesión nueva).
 - **#18 (resuelto):** `AGENTS.md`, `docs/agent-workflows/task-protocol.md` y `docs/agent-workflows/architecture.md` ya reflejan la convención vigente (rama por issue + metadata de PR, §1); "una rama por fase" quedó retirada de los tres documentos.
 - **Renderizado en navegador** del frontend sin automatizar (solo verificación HTTP), heredado de M6.
 - **Extracción live contra Overpass real nunca ejecutada** (M1); el modo live está cubierto con HTTP simulado.
