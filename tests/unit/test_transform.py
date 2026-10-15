@@ -39,6 +39,12 @@ def test_transform_payload_normalizes_fixture_records() -> None:
     # openstreetmap is always "cafe": the Overpass query already filters
     # amenity=cafe, so it is a source fact rather than a name-based guess.
     assert {record.establishment_kind for record in result.accepted} == {"cafe"}
+    # openstreetmap never provides municipio: always None, never inferred.
+    assert {record.municipio for record in result.records} == {None}
+    # openstreetmap never provides the INEGI DENUE raw identifiers either.
+    assert {record.ubicacion for record in result.records} == {None}
+    assert {record.areageo for record in result.records} == {None}
+    assert {record.clee for record in result.records} == {None}
 
 
 def test_transform_payload_rejects_outside_records_and_later_duplicates() -> None:
@@ -82,6 +88,26 @@ def test_transform_payload_rejects_a_payload_without_elements() -> None:
     result = transform({})
 
     assert result.rejected[0].rejection_reason is RejectionReason.MALFORMED_RESPONSE
+
+
+def test_transform_payload_ignores_a_stray_municipio_tag_from_openstreetmap() -> None:
+    # OpenStreetMap never provides an official municipio; a freeform tag
+    # that happens to be named "municipio" must not leak in as if it were one.
+    result = transform(
+        {
+            "elements": [
+                {
+                    "type": "node",
+                    "id": 1,
+                    "lat": 20.6,
+                    "lon": -103.4,
+                    "tags": {"municipio": "Guadalajara"},
+                }
+            ]
+        }
+    )
+
+    assert result.accepted[0].municipio is None
 
 
 def test_transform_payload_normalizes_names_and_missing_tags() -> None:

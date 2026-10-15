@@ -42,7 +42,12 @@ def extract_offline_denue(
         raise ExtractionError("DENUE offline snapshot must be a JSON array of records")
 
     return _build_result(
-        payload={"elements": [_to_element(record) for record in raw_records]},
+        payload={
+            "elements": [
+                _to_element(record, municipio=_clean_text(record.get("Municipio")))
+                for record in raw_records
+            ]
+        },
         source_config=source_config,
         raw_root=raw_root,
         run_id=run_id,
@@ -66,12 +71,13 @@ def extract_live_denue(
     if not token:
         raise ExtractionError("INEGI DENUE token is required for live extraction")
 
-    raw_records: list[dict[str, Any]] = []
+    elements: list[dict[str, Any]] = []
     for municipality in source_config.municipalities:
-        raw_records.extend(_fetch_municipality(source_config, municipality, token, sleep))
+        records = _fetch_municipality(source_config, municipality, token, sleep)
+        elements.extend(_to_element(record, municipio=municipality.name) for record in records)
 
     return _build_result(
-        payload={"elements": [_to_element(record) for record in raw_records]},
+        payload={"elements": elements},
         source_config=source_config,
         raw_root=raw_root,
         run_id=run_id,
@@ -179,12 +185,16 @@ def _describe_query(source_config: SourceConfig) -> str:
     )
 
 
-def _to_element(record: Mapping[str, Any]) -> dict[str, Any]:
+def _to_element(record: Mapping[str, Any], *, municipio: str | None = None) -> dict[str, Any]:
     """Map one verbatim DENUE record into the shared Overpass-like element shape.
 
     Every original DENUE field is kept; `type`/`id`/`tags` are added as
     derived routing keys (mirroring how Overpass elements natively carry
     them) so `validate.read_identity` and `transform_payload` work unchanged.
+
+    `municipio` is the official municipality already known from the query
+    that produced this record (the config municipality for live extraction);
+    it is never parsed from DENUE's free-text `Ubicacion`/`AreaGeo` fields.
     """
 
     element = dict(record)
@@ -194,6 +204,7 @@ def _to_element(record: Mapping[str, Any]) -> dict[str, Any]:
         "name": _clean_text(record.get("Nombre")),
         "razon_social": _clean_text(record.get("Razon_social")),
         "clase_actividad": _clean_text(record.get("Clase_actividad")),
+        "municipio": municipio,
     }
     return element
 

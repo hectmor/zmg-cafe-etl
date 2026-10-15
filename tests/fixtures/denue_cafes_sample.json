@@ -4,14 +4,19 @@
     "Nombre": "Café Ejemplo Centro",
     "Razon_social": "Café Ejemplo Centro SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Guadalajara",
     "Latitud": "20.676195",
-    "Longitud": "-103.347190"
+    "Longitud": "-103.347190",
+    "Ubicacion": "CALLE JUAREZ 123, CENTRO, GUADALAJARA, JALISCO",
+    "AreaGeo": "140390001234056",
+    "CLEE": "141390001A0101234567"
   },
   {
     "Id": "7026403002",
     "Nombre": "",
     "Razon_social": "Negocio Local Café Dos SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Guadalajara",
     "Latitud": "20.659700",
     "Longitud": "-103.349600"
   },
@@ -20,6 +25,7 @@
     "Nombre": "Café Fuera de Zona",
     "Razon_social": "Café Fuera de Zona SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Guadalajara",
     "Latitud": "19.432608",
     "Longitud": "-99.133209"
   },
@@ -28,6 +34,7 @@
     "Nombre": "Café Plaza Sur",
     "Razon_social": "Café Plaza Sur SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Zapopan",
     "Latitud": "20.600000",
     "Longitud": "-103.360000"
   },
@@ -36,6 +43,7 @@
     "Nombre": "Nevería y Paletería La Flor",
     "Razon_social": "Nevería La Flor SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Tlaquepaque",
     "Latitud": "20.650000",
     "Longitud": "-103.340000"
   },
@@ -44,6 +52,7 @@
     "Nombre": "Refresquería La Esquina",
     "Razon_social": "Fuente de Sodas La Esquina SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Tonalá",
     "Latitud": "20.640000",
     "Longitud": "-103.330000"
   },
@@ -52,6 +61,7 @@
     "Nombre": "Abarrotes Don Beto",
     "Razon_social": "Abarrotes Don Beto SA de CV",
     "Clase_actividad": "Cafeterías, fuentes de sodas, neverías, refresquerías y similares",
+    "Municipio": "Guadalajara",
     "Latitud": "20.630000",
     "Longitud": "-103.320000"
   }

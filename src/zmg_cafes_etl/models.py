@@ -53,6 +53,16 @@ class NormalizedRecord:
     run_id: str
     validation_status: ValidationStatus
     rejection_reason: RejectionReason | None
+    # Official municipality for the matching INEGI DENUE query batch (never
+    # inferred from free text like `Ubicacion`); always None for OpenStreetMap,
+    # which does not provide municipio.
+    municipio: str | None = None
+    # Verbatim INEGI DENUE fields (`Ubicacion`, `AreaGeo`, `CLEE`), already
+    # complete on the raw record; never derived/parsed. Always None for
+    # OpenStreetMap, which does not provide them.
+    ubicacion: str | None = None
+    areageo: str | None = None
+    clee: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

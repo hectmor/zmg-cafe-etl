@@ -82,12 +82,13 @@ _DELETE_STAGING_RUN = "DELETE FROM staging.cafe_records WHERE run_id = %(run_id)
 _INSERT_STAGING = """
 INSERT INTO staging.cafe_records (
     run_id, source, object_type, object_id, source_id, name, category,
-    establishment_kind, latitude, longitude, geometry, geometry_method, tags,
-    source_updated_at, retrieved_at, validation_status, rejection_reason
+    establishment_kind, municipio, ubicacion, areageo, clee, latitude, longitude, geometry,
+    geometry_method, tags, source_updated_at, retrieved_at, validation_status, rejection_reason
 )
 VALUES (
     %(run_id)s, %(source)s, %(object_type)s, %(object_id)s, %(source_id)s, %(name)s,
-    %(category)s, %(establishment_kind)s, %(latitude)s, %(longitude)s,
+    %(category)s, %(establishment_kind)s, %(municipio)s, %(ubicacion)s, %(areageo)s, %(clee)s,
+    %(latitude)s, %(longitude)s,
     CASE
         WHEN %(validation_status)s = 'rejected' THEN NULL
         ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)
@@ -100,12 +101,13 @@ VALUES (
 _UPSERT_ANALYTICS = """
 INSERT INTO analytics.cafes (
     source_id, source, object_type, object_id, name, category,
-    establishment_kind, latitude, longitude, geometry, geometry_method, tags,
-    source_updated_at, retrieved_at, run_id
+    establishment_kind, municipio, ubicacion, areageo, clee, latitude, longitude, geometry,
+    geometry_method, tags, source_updated_at, retrieved_at, run_id
 )
 VALUES (
     %(source_id)s, %(source)s, %(object_type)s, %(object_id)s, %(name)s, %(category)s,
-    %(establishment_kind)s, %(latitude)s, %(longitude)s,
+    %(establishment_kind)s, %(municipio)s, %(ubicacion)s, %(areageo)s, %(clee)s,
+    %(latitude)s, %(longitude)s,
     ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326),
     %(geometry_method)s, %(tags)s, %(source_updated_at)s, %(retrieved_at)s, %(run_id)s
 )
@@ -116,6 +118,10 @@ SET source = EXCLUDED.source,
     name = EXCLUDED.name,
     category = EXCLUDED.category,
     establishment_kind = EXCLUDED.establishment_kind,
+    municipio = EXCLUDED.municipio,
+    ubicacion = EXCLUDED.ubicacion,
+    areageo = EXCLUDED.areageo,
+    clee = EXCLUDED.clee,
     latitude = EXCLUDED.latitude,
     longitude = EXCLUDED.longitude,
     geometry = EXCLUDED.geometry,
@@ -273,6 +279,10 @@ def _record_parameters(record: NormalizedRecord) -> dict[str, Any]:
         "name": record.name,
         "category": record.category,
         "establishment_kind": record.establishment_kind,
+        "municipio": record.municipio,
+        "ubicacion": record.ubicacion,
+        "areageo": record.areageo,
+        "clee": record.clee,
         "latitude": record.latitude,
         "longitude": record.longitude,
         "geometry_method": record.geometry_method.value if record.geometry_method else None,

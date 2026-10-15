@@ -71,6 +71,7 @@ def test_extract_offline_denue_maps_records_into_generic_elements(tmp_path, sour
     assert first["id"] == 7026403001
     assert first["Latitud"] == "20.676195"
     assert first["tags"]["name"] == "Café Ejemplo Centro"
+    assert first["tags"]["municipio"] == "Guadalajara"
 
     metadata = json.loads(result.metadata_path.read_text(encoding="utf-8"))
     assert metadata["request_mode"] == "offline"
@@ -97,16 +98,28 @@ def test_offline_denue_fixture_transforms_into_expected_statuses(tmp_path, sourc
     assert by_id[7026403001].source_id == "inegi_denue:economic_unit:7026403001"
     assert by_id[7026403001].geometry_method.value == "denue_coordinates"
     assert by_id[7026403001].establishment_kind == "cafe"
+    assert by_id[7026403001].municipio == "Guadalajara"
+    # Verbatim raw INEGI fields already complete on the record; never parsed.
+    assert by_id[7026403001].ubicacion == "CALLE JUAREZ 123, CENTRO, GUADALAJARA, JALISCO"
+    assert by_id[7026403001].areageo == "140390001234056"
+    assert by_id[7026403001].clee == "141390001A0101234567"
     assert by_id[7026403002].validation_status.value == "accepted_with_warning"
     assert by_id[7026403002].name is None
     # "Negocio Local Café Dos", classified via Razon_social since Nombre is blank.
     assert by_id[7026403002].establishment_kind == "cafe"
+    # Rejected for being outside the study area, but the municipio known from
+    # the query is still preserved for audit (it is not a coordinate-derived fact).
     assert by_id[7026403003].rejection_reason.value == "outside_study_area"
+    assert by_id[7026403003].municipio == "Guadalajara"
     assert by_id[7026403004].validation_status.value == "accepted"
     assert by_id[7026403004].establishment_kind == "cafe"
+    assert by_id[7026403004].municipio == "Zapopan"
     assert by_id[7026403005].establishment_kind == "neveria"
+    assert by_id[7026403005].municipio == "Tlaquepaque"
     assert by_id[7026403006].establishment_kind == "refresqueria"
+    assert by_id[7026403006].municipio == "Tonalá"
     assert by_id[7026403007].establishment_kind == "otro"
+    assert by_id[7026403007].municipio == "Guadalajara"
 
 
 def test_extract_offline_denue_rejects_non_list_snapshot(tmp_path, source_config) -> None:
@@ -150,6 +163,11 @@ def test_extract_live_denue_requests_every_municipality_and_stops_pagination(
     assert len(requested_urls) == len(source_config.municipalities)
     assert result.object_count == len(source_config.municipalities)
     assert all("secret-token-123" in url for url in requested_urls)
+    # Each fetched record is tagged with the exact municipio of the batch
+    # that returned it (known from config, never inferred from the response).
+    assert [element["tags"]["municipio"] for element in result.payload["elements"]] == [
+        municipality.name for municipality in source_config.municipalities
+    ]
 
 
 def test_extract_live_denue_paginates_until_a_short_window(

@@ -60,6 +60,10 @@ def transform_payload(
                     name=record.name,
                     tags=record.tags,
                     establishment_kind=record.establishment_kind,
+                    municipio=record.municipio,
+                    ubicacion=record.ubicacion,
+                    areageo=record.areageo,
+                    clee=record.clee,
                 )
             else:
                 seen_source_ids.add(record.source_id)
@@ -88,6 +92,8 @@ def _transform_element(
     name = _normalize_name(tags.get("name"))
     source_id = _source_id(source, object_type, object_id)
     establishment_kind = _establishment_kind(source, name, tags.get("razon_social"))
+    municipio = _municipio(source, tags)
+    ubicacion, areageo, clee = _denue_raw_identifiers(source, element)
     if identity_error is not None:
         return _rejected_record(
             source=source,
@@ -100,6 +106,10 @@ def _transform_element(
             name=name,
             tags=tags,
             establishment_kind=establishment_kind,
+            municipio=municipio,
+            ubicacion=ubicacion,
+            areageo=areageo,
+            clee=clee,
         )
     if tags_error is not None:
         return _rejected_record(
@@ -113,6 +123,10 @@ def _transform_element(
             name=name,
             tags=tags,
             establishment_kind=establishment_kind,
+            municipio=municipio,
+            ubicacion=ubicacion,
+            areageo=areageo,
+            clee=clee,
         )
 
     latitude, longitude, geometry_method, geometry_error = read_geometry(element, object_type)
@@ -128,6 +142,10 @@ def _transform_element(
             name=name,
             tags=tags,
             establishment_kind=establishment_kind,
+            municipio=municipio,
+            ubicacion=ubicacion,
+            areageo=areageo,
+            clee=clee,
         )
     if not is_within_study_area(latitude, longitude, study_area):
         return _rejected_record(
@@ -141,6 +159,10 @@ def _transform_element(
             name=name,
             tags=tags,
             establishment_kind=establishment_kind,
+            municipio=municipio,
+            ubicacion=ubicacion,
+            areageo=areageo,
+            clee=clee,
         )
 
     status = ValidationStatus.ACCEPTED
@@ -164,6 +186,10 @@ def _transform_element(
         run_id=run_id,
         validation_status=status,
         rejection_reason=None,
+        municipio=municipio,
+        ubicacion=ubicacion,
+        areageo=areageo,
+        clee=clee,
     )
 
 
@@ -195,6 +221,43 @@ def _establishment_kind(source: str, name: str | None, razon_social: Any) -> str
     return "otro"
 
 
+def _municipio(source: str, tags: Mapping[str, Any]) -> str | None:
+    """Return the official municipio already stamped on the element's tags.
+
+    Only `inegi_denue` carries this (set per query batch in
+    `extract_denue.py`, never inferred); OpenStreetMap never has it.
+    """
+
+    if source != "inegi_denue":
+        return None
+    value = tags.get("municipio")
+    return value if isinstance(value, str) and value else None
+
+
+def _denue_raw_identifiers(
+    source: str, element: Mapping[str, Any]
+) -> tuple[str | None, str | None, str | None]:
+    """Return the verbatim INEGI DENUE `Ubicacion`/`AreaGeo`/`CLEE` fields.
+
+    These are official raw fields already complete on the DENUE record
+    copied into the element (`extract_denue._to_element`); never
+    parsed/derived. Always `None` for any other source, including
+    OpenStreetMap, which does not provide them.
+    """
+
+    if source != "inegi_denue":
+        return None, None, None
+    return (
+        _clean_denue_field(element.get("Ubicacion")),
+        _clean_denue_field(element.get("AreaGeo")),
+        _clean_denue_field(element.get("CLEE")),
+    )
+
+
+def _clean_denue_field(value: Any) -> str | None:
+    return value.strip() or None if isinstance(value, str) else None
+
+
 def _rejected_record(
     *,
     source: str,
@@ -207,6 +270,10 @@ def _rejected_record(
     name: str | None = None,
     tags: dict[str, Any] | None = None,
     establishment_kind: str = "otro",
+    municipio: str | None = None,
+    ubicacion: str | None = None,
+    areageo: str | None = None,
+    clee: str | None = None,
 ) -> NormalizedRecord:
     return NormalizedRecord(
         source=source,
@@ -226,4 +293,8 @@ def _rejected_record(
         run_id=run_id,
         validation_status=ValidationStatus.REJECTED,
         rejection_reason=reason,
+        municipio=municipio,
+        ubicacion=ubicacion,
+        areageo=areageo,
+        clee=clee,
     )
