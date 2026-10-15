@@ -44,7 +44,7 @@ M0–M6 **completados y documentados** (fundación, extracción Overpass, transf
 
 **Orden de merge:** #25 → #27 → #29; #28 y #30 en cualquier orden. Los apilados muestran también commits de sus dependencias hasta que se fusionen.
 
-**Issues abiertos sin milestone:** #18 (unificar convención rama por issue y metadata de PR en docs) · #19 (verificar que los agentes opencode se usen) · #26 (bug: la API no acepta el DSN `postgresql+psycopg://` de `.env.example`) · #31 (este documento).
+**Issues abiertos sin milestone:** #19 (verificar que los agentes opencode se usen) · #26 (bug: la API no acepta el DSN `postgresql+psycopg://` de `.env.example`) · #31 (este documento).
 
 ## 5. Verificación: comandos y resultados esperados
 
@@ -82,7 +82,7 @@ Esquemas: `meta.pipeline_runs` (ejecución), `raw.overpass_snapshots` (payload c
 
 - **#26 (bug):** `api/db.py` conecta con `psycopg.connect` sin normalizar el sufijo `postgresql+psycopg://` que documentan `.env.example` y `docs/database.md`; con ese valor, `/health` queda en 503. El loader sí lo normaliza (`normalize_dsn`). Repro y aceptación en el issue.
 - **#19:** los agentes opencode (`etl-engineer`, `database-engineer`, `qa-data-quality-engineer`) existen en `.opencode/agents/`, pero no se ha verificado que una sesión los cargue y use.
-- **#18:** la documentación de workflow aún refleja "una rama por fase"; la convención vigente es rama por issue + metadata de PR (§1).
+- **#18 (resuelto):** `AGENTS.md`, `docs/agent-workflows/task-protocol.md` y `docs/agent-workflows/architecture.md` ya reflejan la convención vigente (rama por issue + metadata de PR, §1); "una rama por fase" quedó retirada de los tres documentos.
 - **Renderizado en navegador** del frontend sin automatizar (solo verificación HTTP), heredado de M6.
 - **Extracción live contra Overpass real nunca ejecutada** (M1); el modo live está cubierto con HTTP simulado.
 - **Historia descartada:** hubo un intento local paralelo de M2–M4 con Alembic; está obsoleto y preservado como `stash@{0}` en la rama `main` de esta máquina. El camino válido es `develop` + Flyway. No mezclar.

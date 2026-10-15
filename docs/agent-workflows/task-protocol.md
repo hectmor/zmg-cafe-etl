@@ -47,3 +47,7 @@ La propiedad no autoriza modificar interfaces compartidas sin registrar una prop
 ## 4. Cierre
 
 El Lead revisa el diff real, ejecuta las pruebas de integración y actualiza la documentación. Un resumen del agente nunca sustituye la inspección del código ni la ejecución local.
+
+## 5. Rama y pull request
+
+Cada tarea delegada se implementa en una rama por issue (`tipo/issue-N-slug`) desde `develop`, nunca una rama por fase. El PR resultante va a `develop`, referencia `Closes #N` y lleva la metadata exigida en `AGENTS.md` (assignee `hectmor`, label del issue, milestone correspondiente, proyecto GitHub `zmg-cafe`).
