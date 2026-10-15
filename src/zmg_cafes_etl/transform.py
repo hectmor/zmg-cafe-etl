@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
+from .classify import classify_establishment_kind
 from .config import BoundingBox
 from .models import (
     GeometryMethod,
@@ -32,6 +33,7 @@ def transform_payload(
             retrieved_at=retrieved_at,
             run_id=run_id,
             reason=RejectionReason.MALFORMED_RESPONSE,
+            establishment_kind=_establishment_kind(source, None, None),
         )
         return TransformationResult(records=(record,))
 
@@ -57,6 +59,7 @@ def transform_payload(
                     source_id=record.source_id,
                     name=record.name,
                     tags=record.tags,
+                    establishment_kind=record.establishment_kind,
                 )
             else:
                 seen_source_ids.add(record.source_id)
@@ -78,11 +81,13 @@ def _transform_element(
             retrieved_at=retrieved_at,
             run_id=run_id,
             reason=RejectionReason.MALFORMED_RESPONSE,
+            establishment_kind=_establishment_kind(source, None, None),
         )
     object_type, object_id, identity_error = read_identity(element)
     tags, tags_error = _read_tags(element)
     name = _normalize_name(tags.get("name"))
     source_id = _source_id(source, object_type, object_id)
+    establishment_kind = _establishment_kind(source, name, tags.get("razon_social"))
     if identity_error is not None:
         return _rejected_record(
             source=source,
@@ -94,6 +99,7 @@ def _transform_element(
             source_id=source_id,
             name=name,
             tags=tags,
+            establishment_kind=establishment_kind,
         )
     if tags_error is not None:
         return _rejected_record(
@@ -106,6 +112,7 @@ def _transform_element(
             source_id=source_id,
             name=name,
             tags=tags,
+            establishment_kind=establishment_kind,
         )
 
     latitude, longitude, geometry_method, geometry_error = read_geometry(element, object_type)
@@ -120,6 +127,7 @@ def _transform_element(
             source_id=source_id,
             name=name,
             tags=tags,
+            establishment_kind=establishment_kind,
         )
     if not is_within_study_area(latitude, longitude, study_area):
         return _rejected_record(
@@ -132,6 +140,7 @@ def _transform_element(
             source_id=source_id,
             name=name,
             tags=tags,
+            establishment_kind=establishment_kind,
         )
 
     status = ValidationStatus.ACCEPTED
@@ -144,6 +153,7 @@ def _transform_element(
         source_id=source_id,
         name=name,
         category="cafe",
+        establishment_kind=establishment_kind,
         latitude=latitude,
         longitude=longitude,
         geometry={"type": "Point", "coordinates": [longitude, latitude]},
@@ -174,6 +184,17 @@ def _source_id(source: str, object_type: str | None, object_id: int | None) -> s
     return f"{source}:{object_type}:{object_id}"
 
 
+def _establishment_kind(source: str, name: str | None, razon_social: Any) -> str:
+    if source == "openstreetmap":
+        # The query already filters amenity=cafe: a source fact, not a guess.
+        return "cafe"
+    if source == "inegi_denue":
+        return classify_establishment_kind(
+            name, razon_social if isinstance(razon_social, str) else None
+        )
+    return "otro"
+
+
 def _rejected_record(
     *,
     source: str,
@@ -185,6 +206,7 @@ def _rejected_record(
     source_id: str | None = None,
     name: str | None = None,
     tags: dict[str, Any] | None = None,
+    establishment_kind: str = "otro",
 ) -> NormalizedRecord:
     return NormalizedRecord(
         source=source,
@@ -193,6 +215,7 @@ def _rejected_record(
         source_id=source_id,
         name=name,
         category="cafe",
+        establishment_kind=establishment_kind,
         latitude=None,
         longitude=None,
         geometry=None,

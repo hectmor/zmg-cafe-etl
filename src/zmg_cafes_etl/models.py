@@ -9,6 +9,7 @@ from typing import Any
 class GeometryMethod(StrEnum):
     NODE_COORDINATES = "node_coordinates"
     OVERPASS_CENTER = "overpass_center"
+    DENUE_COORDINATES = "denue_coordinates"
 
 
 class ValidationStatus(StrEnum):
@@ -39,6 +40,9 @@ class NormalizedRecord:
     source_id: str | None
     name: str | None
     category: str
+    # Derived heuristic subtype ("cafe"/"neveria"/"refresqueria"/"otro"); not
+    # an official INEGI/OSM attribute, see classify.py.
+    establishment_kind: str
     latitude: float | None
     longitude: float | None
     geometry: dict[str, Any] | None

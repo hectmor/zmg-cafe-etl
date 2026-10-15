@@ -31,3 +31,60 @@ sources:
     timeout_seconds: 30
     max_retries: 2
     retry_backoff_seconds: 2
+
+  # Second source (issue #58 / milestone M9): INEGI DENUE, queried by
+  # BuscarAreaAct per ZMG municipality instead of a single bbox query.
+  # The API path is 13 positional segments + a token:
+  #   {entidad}/{municipio}/{localidad}/{ageb}/{manzana}/{sector}/
+  #   {subsector}/{rama}/{clase}/{nombre}/{registro_inicial}/
+  #   {registro_final}/{id}/{token}
+  # Wildcards are the literal string "0" (unpadded), except `entidad`,
+  # which is naturally 2 digits. `clase` is the SCIAN code for cafés
+  # ("722515"). The token is a secret: it is NEVER stored here; it is read
+  # from the INEGI_DENUE_TOKEN environment variable at run time.
+  - name: inegi_denue
+    provider: "INEGI (Instituto Nacional de Estadística y Geografía)"
+    access_method: inegi_denue_api
+    endpoint: "https://www.inegi.org.mx/app/api/denue/v1/consulta/BuscarAreaAct"
+    attribution: "INEGI. Directorio Estadístico Nacional de Unidades Económicas (DENUE)"
+    license: "Datos abiertos INEGI"
+    object_identity: "source + object_type + object_id"
+    timeout_seconds: 30
+    max_retries: 2
+    retry_backoff_seconds: 2
+    # SCIAN 722515: "Cafeterías, fuentes de sodas, neverías, refresquerías y similares".
+    scian_class: "722515"
+    # Registros por ventana de paginación; se detiene cuando una ventana
+    # devuelve menos registros que este tamaño (fin natural del municipio).
+    page_size: 250
+    # Los 9 municipios de la ZMG (entidad 14 = Jalisco). Los municipios
+    # DENUE no coinciden exactamente con el bbox provisional; el filtro de
+    # bbox en validate.py sigue aplicándose sobre el resultado.
+    municipalities:
+      - name: Guadalajara
+        entidad: "14"
+        municipio: "039"
+      - name: Zapopan
+        entidad: "14"
+        municipio: "120"
+      - name: Tlaquepaque
+        entidad: "14"
+        municipio: "097"
+      - name: Tonalá
+        entidad: "14"
+        municipio: "101"
+      - name: Tlajomulco de Zúñiga
+        entidad: "14"
+        municipio: "098"
+      - name: El Salto
+        entidad: "14"
+        municipio: "070"
+      - name: Juanacatlán
+        entidad: "14"
+        municipio: "050"
+      - name: Ixtlahuacán de los Membrillos
+        entidad: "14"
+        municipio: "043"
+      - name: Zapotlanejo
+        entidad: "14"
+        municipio: "124"

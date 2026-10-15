@@ -29,21 +29,30 @@ def read_geometry(
     if object_type == "node":
         coordinate_data: Mapping[str, Any] = element
         geometry_method = GeometryMethod.NODE_COORDINATES
+        latitude_key, longitude_key = "lat", "lon"
     elif object_type in {"way", "relation"}:
         center = element.get("center")
         if not isinstance(center, Mapping):
             return None, None, None, RejectionReason.MISSING_WAY_OR_RELATION_CENTER
         coordinate_data = center
         geometry_method = GeometryMethod.OVERPASS_CENTER
+        latitude_key, longitude_key = "lat", "lon"
+    elif object_type == "economic_unit":
+        # DENUE records carry their own coordinates directly on the record,
+        # like a node, but under their native (Spanish, capitalized) field
+        # names instead of Overpass' "lat"/"lon".
+        coordinate_data = element
+        geometry_method = GeometryMethod.DENUE_COORDINATES
+        latitude_key, longitude_key = "Latitud", "Longitud"
     else:
         return None, None, None, RejectionReason.UNSUPPORTED_GEOMETRY
 
-    if "lat" not in coordinate_data or "lon" not in coordinate_data:
+    if latitude_key not in coordinate_data or longitude_key not in coordinate_data:
         return None, None, None, RejectionReason.MISSING_COORDINATES
-    latitude = _as_coordinate(coordinate_data["lat"])
+    latitude = _as_coordinate(coordinate_data[latitude_key])
     if latitude is None or not -90 <= latitude <= 90:
         return None, None, None, RejectionReason.INVALID_LATITUDE
-    longitude = _as_coordinate(coordinate_data["lon"])
+    longitude = _as_coordinate(coordinate_data[longitude_key])
     if longitude is None or not -180 <= longitude <= 180:
         return None, None, None, RejectionReason.INVALID_LONGITUDE
     return latitude, longitude, geometry_method, None

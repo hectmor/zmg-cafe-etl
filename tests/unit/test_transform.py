@@ -36,6 +36,9 @@ def test_transform_payload_normalizes_fixture_records() -> None:
     assert unnamed_node.name is None
     assert unnamed_node.validation_status is ValidationStatus.ACCEPTED_WITH_WARNING
     assert relation.object_type == "relation"
+    # openstreetmap is always "cafe": the Overpass query already filters
+    # amenity=cafe, so it is a source fact rather than a name-based guess.
+    assert {record.establishment_kind for record in result.accepted} == {"cafe"}
 
 
 def test_transform_payload_rejects_outside_records_and_later_duplicates() -> None:

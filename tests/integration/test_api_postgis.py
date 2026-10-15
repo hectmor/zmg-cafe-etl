@@ -36,7 +36,7 @@ def clean_database() -> None:
         with connection.cursor() as cursor:
             cursor.execute(
                 "TRUNCATE analytics.cafes, staging.cafe_records,"
-                " raw.overpass_snapshots, meta.pipeline_runs"
+                " raw.overpass_snapshots, raw.denue_snapshots, meta.pipeline_runs"
             )
 
 

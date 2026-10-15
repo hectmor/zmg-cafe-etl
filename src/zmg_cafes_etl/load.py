@@ -52,8 +52,12 @@ SET source = EXCLUDED.source,
     completed_at = NULL
 """
 
-_INSERT_SNAPSHOT = """
-INSERT INTO raw.overpass_snapshots (run_id, query, query_hash, payload, snapshot_path)
+
+def _insert_snapshot_sql(table: str) -> str:
+    """Build the snapshot upsert for a fixed, non-user-controlled table name."""
+
+    return f"""
+INSERT INTO {table} (run_id, query, query_hash, payload, snapshot_path)
 VALUES (%(run_id)s, %(query)s, %(query_hash)s, %(payload)s, %(snapshot_path)s)
 ON CONFLICT (run_id) DO UPDATE
 SET query = EXCLUDED.query,
@@ -62,17 +66,28 @@ SET query = EXCLUDED.query,
     snapshot_path = EXCLUDED.snapshot_path
 """
 
+
+# Fixed, literal table identifiers per source (never built from request/user input).
+_SNAPSHOT_TABLE_BY_SOURCE = {
+    "openstreetmap": "raw.overpass_snapshots",
+    "inegi_denue": "raw.denue_snapshots",
+}
+
+_INSERT_SNAPSHOT_BY_SOURCE = {
+    source: _insert_snapshot_sql(table) for source, table in _SNAPSHOT_TABLE_BY_SOURCE.items()
+}
+
 _DELETE_STAGING_RUN = "DELETE FROM staging.cafe_records WHERE run_id = %(run_id)s"
 
 _INSERT_STAGING = """
 INSERT INTO staging.cafe_records (
     run_id, source, object_type, object_id, source_id, name, category,
-    latitude, longitude, geometry, geometry_method, tags,
+    establishment_kind, latitude, longitude, geometry, geometry_method, tags,
     source_updated_at, retrieved_at, validation_status, rejection_reason
 )
 VALUES (
     %(run_id)s, %(source)s, %(object_type)s, %(object_id)s, %(source_id)s, %(name)s,
-    %(category)s, %(latitude)s, %(longitude)s,
+    %(category)s, %(establishment_kind)s, %(latitude)s, %(longitude)s,
     CASE
         WHEN %(validation_status)s = 'rejected' THEN NULL
         ELSE ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)
@@ -85,12 +100,12 @@ VALUES (
 _UPSERT_ANALYTICS = """
 INSERT INTO analytics.cafes (
     source_id, source, object_type, object_id, name, category,
-    latitude, longitude, geometry, geometry_method, tags,
+    establishment_kind, latitude, longitude, geometry, geometry_method, tags,
     source_updated_at, retrieved_at, run_id
 )
 VALUES (
     %(source_id)s, %(source)s, %(object_type)s, %(object_id)s, %(name)s, %(category)s,
-    %(latitude)s, %(longitude)s,
+    %(establishment_kind)s, %(latitude)s, %(longitude)s,
     ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326),
     %(geometry_method)s, %(tags)s, %(source_updated_at)s, %(retrieved_at)s, %(run_id)s
 )
@@ -100,6 +115,7 @@ SET source = EXCLUDED.source,
     object_id = EXCLUDED.object_id,
     name = EXCLUDED.name,
     category = EXCLUDED.category,
+    establishment_kind = EXCLUDED.establishment_kind,
     latitude = EXCLUDED.latitude,
     longitude = EXCLUDED.longitude,
     geometry = EXCLUDED.geometry,
@@ -165,6 +181,12 @@ def load_run(
     updated = 0
     retired = 0
     try:
+        insert_snapshot_sql = _INSERT_SNAPSHOT_BY_SOURCE[extraction.source]
+    except KeyError as error:
+        raise LoadError(
+            f"Unknown source {extraction.source!r}; no raw snapshot table is configured for it"
+        ) from error
+    try:
         with psycopg.connect(normalize_dsn(dsn)) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -180,7 +202,7 @@ def load_run(
                     },
                 )
                 cursor.execute(
-                    _INSERT_SNAPSHOT,
+                    insert_snapshot_sql,
                     {
                         "run_id": extraction.run_id,
                         "query": extraction.query,
@@ -250,6 +272,7 @@ def _record_parameters(record: NormalizedRecord) -> dict[str, Any]:
         "source_id": record.source_id,
         "name": record.name,
         "category": record.category,
+        "establishment_kind": record.establishment_kind,
         "latitude": record.latitude,
         "longitude": record.longitude,
         "geometry_method": record.geometry_method.value if record.geometry_method else None,
