@@ -32,6 +32,41 @@ services:
       - ./db/migrations:/flyway/migrations:ro
     command: migrate
 
+  # Disposable database for ZMG_TEST_DATABASE_URL (issue #59): never the
+  # same database as `db` above. No named volume — data does not survive
+  # `docker compose down`/container removal, by design.
+  test-db:
+    image: postgis/postgis:17-3.5
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: zmg_cafes_test
+      POSTGRES_USER: ${POSTGRES_USER:-zmg_cafes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zmg_cafes_dev}
+    ports:
+      - "${TEST_POSTGRES_PORT:-0}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  test-flyway:
+    image: redgate/flyway:13.6.0
+    profiles: ["test"]
+    depends_on:
+      test-db:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:postgresql://test-db:5432/zmg_cafes_test
+      FLYWAY_USER: ${POSTGRES_USER:-zmg_cafes}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-zmg_cafes_dev}
+      FLYWAY_SCHEMAS: meta
+      FLYWAY_CREATE_SCHEMAS: "true"
+      FLYWAY_LOCATIONS: filesystem:/flyway/migrations
+    volumes:
+      - ./db/migrations:/flyway/migrations:ro
+    command: migrate
+
   api:
     build:
       context: .
