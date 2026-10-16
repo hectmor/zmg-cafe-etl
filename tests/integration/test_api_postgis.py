@@ -1,16 +1,18 @@
 """Integration tests for the café API against PostgreSQL/PostGIS.
 
-Every test truncates the four project schemas first so the assertions stay
-deterministic across repeated runs against the same development database.
+Every test truncates the four project schemas first (see conftest.py's
+guard against truncating the development database, issue #59) so the
+assertions stay deterministic across repeated runs against a disposable
+test database.
 """
 
 import os
 from pathlib import Path
 
-import psycopg
 import pytest
 from api.db import AnalyticsStore
 from api.main import create_app, get_store
+from conftest import truncate_project_tables
 from fastapi.testclient import TestClient
 
 from zmg_cafes_etl.config import load_source_config
@@ -32,12 +34,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def clean_database() -> None:
-    with psycopg.connect(DATABASE_URL) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "TRUNCATE analytics.cafes, staging.cafe_records,"
-                " raw.overpass_snapshots, raw.denue_snapshots, meta.pipeline_runs"
-            )
+    truncate_project_tables(DATABASE_URL)
 
 
 @pytest.fixture
