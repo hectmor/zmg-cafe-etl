@@ -103,6 +103,21 @@ def test_offline_denue_fixture_transforms_into_expected_statuses(tmp_path, sourc
     assert by_id[7026403001].ubicacion == "CALLE JUAREZ 123, CENTRO, GUADALAJARA, JALISCO"
     assert by_id[7026403001].areageo == "140390001234056"
     assert by_id[7026403001].clee == "141390001A0101234567"
+    assert by_id[7026403001].estrato == "0 a 5 personas"
+    assert by_id[7026403001].tipo == "Fijo"
+    assert by_id[7026403001].tipo_vialidad == "CALLE"
+    assert by_id[7026403001].calle == "JUAREZ"
+    assert by_id[7026403001].num_exterior == "123"
+    assert by_id[7026403001].colonia == "CENTRO"
+    assert by_id[7026403001].cp == "44100"
+    assert by_id[7026403001].telefono == "3312345678"
+    assert by_id[7026403001].sitio_internet == "WWW.CAFEEJEMPLO.COM.MX"
+    assert by_id[7026403001].correo_e == "CONTACTO@CAFEEJEMPLO.COM.MX"
+    # "Fecha_Alta" ("YYYY-MM") parses into source_updated_at, UTC month start.
+    assert by_id[7026403001].source_updated_at == datetime(2024, 11, 1, tzinfo=UTC)
+    # Record 7026403002 has none of these fields in the fixture: always None.
+    assert by_id[7026403002].estrato is None
+    assert by_id[7026403002].source_updated_at is None
     assert by_id[7026403002].validation_status.value == "accepted_with_warning"
     assert by_id[7026403002].name is None
     # "Negocio Local Café Dos", classified via Razon_social since Nombre is blank.
