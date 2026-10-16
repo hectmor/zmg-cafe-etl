@@ -55,6 +55,8 @@ class AnalyticsStore:
                     cursor.execute(
                         "SELECT source_id, source, object_type, object_id, name, category,"
                         " establishment_kind, municipio, ubicacion, areageo, clee,"
+                        " estrato, tipo, tipo_vialidad, calle, num_exterior, colonia, cp,"
+                        " telefono, sitio_internet, correo_e,"
                         " latitude, longitude, geometry_method, tags, source_updated_at,"
                         " retrieved_at, run_id"
                         " FROM analytics.establecimientos"
@@ -73,6 +75,8 @@ class AnalyticsStore:
                     cursor.execute(
                         "SELECT source_id, source, object_type, object_id, name, category,"
                         " establishment_kind, municipio, ubicacion, areageo, clee,"
+                        " estrato, tipo, tipo_vialidad, calle, num_exterior, colonia, cp,"
+                        " telefono, sitio_internet, correo_e,"
                         " latitude, longitude, geometry_method, tags, source_updated_at,"
                         " retrieved_at, run_id"
                         " FROM analytics.establecimientos"
@@ -162,6 +166,16 @@ CAFE_COLUMNS = (
     "ubicacion",
     "areageo",
     "clee",
+    "estrato",
+    "tipo",
+    "tipo_vialidad",
+    "calle",
+    "num_exterior",
+    "colonia",
+    "cp",
+    "telefono",
+    "sitio_internet",
+    "correo_e",
     "latitude",
     "longitude",
     "geometry_method",

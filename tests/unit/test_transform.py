@@ -47,6 +47,32 @@ def test_transform_payload_normalizes_fixture_records() -> None:
     assert {record.clee for record in result.records} == {None}
 
 
+def test_denue_malformed_fecha_alta_falls_back_to_none() -> None:
+    payload = {
+        "elements": [
+            {
+                "type": "economic_unit",
+                "id": 1,
+                "tags": {"name": "Test", "municipio": "Guadalajara"},
+                "Latitud": "20.67",
+                "Longitud": "-103.35",
+                "Fecha_Alta": "not-a-date",
+            }
+        ]
+    }
+
+    result = transform_payload(
+        payload,
+        source="inegi_denue",
+        retrieved_at=RETRIEVED_AT,
+        run_id="run-001",
+        study_area=STUDY_AREA,
+    )
+
+    assert result.records[0].validation_status is ValidationStatus.ACCEPTED
+    assert result.records[0].source_updated_at is None
+
+
 def test_transform_payload_rejects_outside_records_and_later_duplicates() -> None:
     result = transform(
         {

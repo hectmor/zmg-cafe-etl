@@ -20,6 +20,16 @@ class Cafe(BaseModel):
     ubicacion: str | None
     areageo: str | None
     clee: str | None
+    estrato: str | None
+    tipo: str | None
+    tipo_vialidad: str | None
+    calle: str | None
+    num_exterior: str | None
+    colonia: str | None
+    cp: str | None
+    telefono: str | None
+    sitio_internet: str | None
+    correo_e: str | None
     latitude: float
     longitude: float
     geometry_method: str

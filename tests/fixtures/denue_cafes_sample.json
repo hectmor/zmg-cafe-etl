@@ -9,7 +9,18 @@
     "Longitud": "-103.347190",
     "Ubicacion": "CALLE JUAREZ 123, CENTRO, GUADALAJARA, JALISCO",
     "AreaGeo": "140390001234056",
-    "CLEE": "141390001A0101234567"
+    "CLEE": "141390001A0101234567",
+    "Estrato": "0 a 5 personas",
+    "Tipo": "Fijo",
+    "Tipo_vialidad": "CALLE",
+    "Calle": "JUAREZ",
+    "Num_Exterior": "123",
+    "Colonia": "CENTRO",
+    "CP": "44100",
+    "Telefono": "3312345678",
+    "Sitio_internet": "WWW.CAFEEJEMPLO.COM.MX",
+    "Correo_e": "CONTACTO@CAFEEJEMPLO.COM.MX",
+    "Fecha_Alta": "2024-11"
   },
   {
     "Id": "7026403002",
