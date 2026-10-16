@@ -1,7 +1,7 @@
 """Transform raw Overpass payloads into normalized café records."""
 
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from .classify import classify_establishment_kind
@@ -64,6 +64,8 @@ def transform_payload(
                     ubicacion=record.ubicacion,
                     areageo=record.areageo,
                     clee=record.clee,
+                    source_updated_at=record.source_updated_at,
+                    denue_fields={column: getattr(record, column) for column in _DENUE_TEXT_FIELDS},
                 )
             else:
                 seen_source_ids.add(record.source_id)
@@ -94,6 +96,8 @@ def _transform_element(
     establishment_kind = _establishment_kind(source, name, tags.get("razon_social"))
     municipio = _municipio(source, tags)
     ubicacion, areageo, clee = _denue_raw_identifiers(source, element)
+    denue_fields = _denue_contact_and_address(source, element)
+    source_updated_at = _source_updated_at(source, element)
     if identity_error is not None:
         return _rejected_record(
             source=source,
@@ -110,6 +114,8 @@ def _transform_element(
             ubicacion=ubicacion,
             areageo=areageo,
             clee=clee,
+            source_updated_at=source_updated_at,
+            denue_fields=denue_fields,
         )
     if tags_error is not None:
         return _rejected_record(
@@ -127,6 +133,8 @@ def _transform_element(
             ubicacion=ubicacion,
             areageo=areageo,
             clee=clee,
+            source_updated_at=source_updated_at,
+            denue_fields=denue_fields,
         )
 
     latitude, longitude, geometry_method, geometry_error = read_geometry(element, object_type)
@@ -146,6 +154,8 @@ def _transform_element(
             ubicacion=ubicacion,
             areageo=areageo,
             clee=clee,
+            source_updated_at=source_updated_at,
+            denue_fields=denue_fields,
         )
     if not is_within_study_area(latitude, longitude, study_area):
         return _rejected_record(
@@ -163,6 +173,8 @@ def _transform_element(
             ubicacion=ubicacion,
             areageo=areageo,
             clee=clee,
+            source_updated_at=source_updated_at,
+            denue_fields=denue_fields,
         )
 
     status = ValidationStatus.ACCEPTED
@@ -181,7 +193,7 @@ def _transform_element(
         geometry={"type": "Point", "coordinates": [longitude, latitude]},
         geometry_method=geometry_method,
         tags=tags,
-        source_updated_at=None,
+        source_updated_at=source_updated_at,
         retrieved_at=retrieved_at,
         run_id=run_id,
         validation_status=status,
@@ -190,6 +202,7 @@ def _transform_element(
         ubicacion=ubicacion,
         areageo=areageo,
         clee=clee,
+        **denue_fields,
     )
 
 
@@ -258,6 +271,56 @@ def _clean_denue_field(value: Any) -> str | None:
     return value.strip() or None if isinstance(value, str) else None
 
 
+# Maps our column name to INEGI's raw field name (issue #66). Verbatim,
+# same precedent as _denue_raw_identifiers: never parsed/derived.
+_DENUE_TEXT_FIELDS = {
+    "estrato": "Estrato",
+    "tipo": "Tipo",
+    "tipo_vialidad": "Tipo_vialidad",
+    "calle": "Calle",
+    "num_exterior": "Num_Exterior",
+    "colonia": "Colonia",
+    "cp": "CP",
+    "telefono": "Telefono",
+    "sitio_internet": "Sitio_internet",
+    "correo_e": "Correo_e",
+}
+
+
+def _denue_contact_and_address(source: str, element: Mapping[str, Any]) -> dict[str, str | None]:
+    """Return the verbatim INEGI DENUE address/contact fields (issue #66).
+
+    Always `None` for any other source, including OpenStreetMap.
+    """
+
+    if source != "inegi_denue":
+        return dict.fromkeys(_DENUE_TEXT_FIELDS, None)
+    return {
+        column: _clean_denue_field(element.get(raw_key))
+        for column, raw_key in _DENUE_TEXT_FIELDS.items()
+    }
+
+
+def _source_updated_at(source: str, element: Mapping[str, Any]) -> datetime | None:
+    """Parse INEGI DENUE's `Fecha_Alta` ("YYYY-MM") into a UTC timestamp.
+
+    Returns `None` when the field is missing, malformed, or the source is
+    not `inegi_denue` (OpenStreetMap has no registration date field) —
+    never fabricated.
+    """
+
+    if source != "inegi_denue":
+        return None
+    value = element.get("Fecha_Alta")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        year_text, month_text = value.strip().split("-")
+        return datetime(int(year_text), int(month_text), 1, tzinfo=UTC)
+    except ValueError:
+        return None
+
+
 def _rejected_record(
     *,
     source: str,
@@ -274,6 +337,8 @@ def _rejected_record(
     ubicacion: str | None = None,
     areageo: str | None = None,
     clee: str | None = None,
+    source_updated_at: datetime | None = None,
+    denue_fields: dict[str, str | None] | None = None,
 ) -> NormalizedRecord:
     return NormalizedRecord(
         source=source,
@@ -288,7 +353,7 @@ def _rejected_record(
         geometry=None,
         geometry_method=None,
         tags=tags or {},
-        source_updated_at=None,
+        source_updated_at=source_updated_at,
         retrieved_at=retrieved_at,
         run_id=run_id,
         validation_status=ValidationStatus.REJECTED,
@@ -297,4 +362,5 @@ def _rejected_record(
         ubicacion=ubicacion,
         areageo=areageo,
         clee=clee,
+        **(denue_fields or {}),
     )

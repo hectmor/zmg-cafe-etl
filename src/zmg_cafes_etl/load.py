@@ -82,12 +82,16 @@ _DELETE_STAGING_RUN = "DELETE FROM staging.cafe_records WHERE run_id = %(run_id)
 _INSERT_STAGING = """
 INSERT INTO staging.cafe_records (
     run_id, source, object_type, object_id, source_id, name, category,
-    establishment_kind, municipio, ubicacion, areageo, clee, latitude, longitude, geometry,
+    establishment_kind, municipio, ubicacion, areageo, clee,
+    estrato, tipo, tipo_vialidad, calle, num_exterior, colonia, cp, telefono,
+    sitio_internet, correo_e, latitude, longitude, geometry,
     geometry_method, tags, source_updated_at, retrieved_at, validation_status, rejection_reason
 )
 VALUES (
     %(run_id)s, %(source)s, %(object_type)s, %(object_id)s, %(source_id)s, %(name)s,
     %(category)s, %(establishment_kind)s, %(municipio)s, %(ubicacion)s, %(areageo)s, %(clee)s,
+    %(estrato)s, %(tipo)s, %(tipo_vialidad)s, %(calle)s, %(num_exterior)s, %(colonia)s,
+    %(cp)s, %(telefono)s, %(sitio_internet)s, %(correo_e)s,
     %(latitude)s, %(longitude)s,
     CASE
         WHEN %(validation_status)s = 'rejected' THEN NULL
@@ -101,12 +105,16 @@ VALUES (
 _UPSERT_ANALYTICS = """
 INSERT INTO analytics.establecimientos (
     source_id, source, object_type, object_id, name, category,
-    establishment_kind, municipio, ubicacion, areageo, clee, latitude, longitude, geometry,
+    establishment_kind, municipio, ubicacion, areageo, clee,
+    estrato, tipo, tipo_vialidad, calle, num_exterior, colonia, cp, telefono,
+    sitio_internet, correo_e, latitude, longitude, geometry,
     geometry_method, tags, source_updated_at, retrieved_at, run_id
 )
 VALUES (
     %(source_id)s, %(source)s, %(object_type)s, %(object_id)s, %(name)s, %(category)s,
     %(establishment_kind)s, %(municipio)s, %(ubicacion)s, %(areageo)s, %(clee)s,
+    %(estrato)s, %(tipo)s, %(tipo_vialidad)s, %(calle)s, %(num_exterior)s, %(colonia)s,
+    %(cp)s, %(telefono)s, %(sitio_internet)s, %(correo_e)s,
     %(latitude)s, %(longitude)s,
     ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326),
     %(geometry_method)s, %(tags)s, %(source_updated_at)s, %(retrieved_at)s, %(run_id)s
@@ -122,6 +130,16 @@ SET source = EXCLUDED.source,
     ubicacion = EXCLUDED.ubicacion,
     areageo = EXCLUDED.areageo,
     clee = EXCLUDED.clee,
+    estrato = EXCLUDED.estrato,
+    tipo = EXCLUDED.tipo,
+    tipo_vialidad = EXCLUDED.tipo_vialidad,
+    calle = EXCLUDED.calle,
+    num_exterior = EXCLUDED.num_exterior,
+    colonia = EXCLUDED.colonia,
+    cp = EXCLUDED.cp,
+    telefono = EXCLUDED.telefono,
+    sitio_internet = EXCLUDED.sitio_internet,
+    correo_e = EXCLUDED.correo_e,
     latitude = EXCLUDED.latitude,
     longitude = EXCLUDED.longitude,
     geometry = EXCLUDED.geometry,
@@ -283,6 +301,16 @@ def _record_parameters(record: NormalizedRecord) -> dict[str, Any]:
         "ubicacion": record.ubicacion,
         "areageo": record.areageo,
         "clee": record.clee,
+        "estrato": record.estrato,
+        "tipo": record.tipo,
+        "tipo_vialidad": record.tipo_vialidad,
+        "calle": record.calle,
+        "num_exterior": record.num_exterior,
+        "colonia": record.colonia,
+        "cp": record.cp,
+        "telefono": record.telefono,
+        "sitio_internet": record.sitio_internet,
+        "correo_e": record.correo_e,
         "latitude": record.latitude,
         "longitude": record.longitude,
         "geometry_method": record.geometry_method.value if record.geometry_method else None,

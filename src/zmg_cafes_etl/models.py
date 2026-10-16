@@ -63,6 +63,19 @@ class NormalizedRecord:
     ubicacion: str | None = None
     areageo: str | None = None
     clee: str | None = None
+    # Verbatim INEGI DENUE fields, same precedent as ubicacion/areageo/clee:
+    # already complete on the raw record, never derived/parsed, always None
+    # for OpenStreetMap, which does not provide them.
+    estrato: str | None = None
+    tipo: str | None = None
+    tipo_vialidad: str | None = None
+    calle: str | None = None
+    num_exterior: str | None = None
+    colonia: str | None = None
+    cp: str | None = None
+    telefono: str | None = None
+    sitio_internet: str | None = None
+    correo_e: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
