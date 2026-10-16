@@ -54,6 +54,7 @@ class AnalyticsStore:
                 with connection.cursor() as cursor:
                     cursor.execute(
                         "SELECT source_id, source, object_type, object_id, name, category,"
+                        " establishment_kind, municipio, ubicacion, areageo, clee,"
                         " latitude, longitude, geometry_method, tags, source_updated_at,"
                         " retrieved_at, run_id"
                         " FROM analytics.establecimientos"
@@ -71,6 +72,7 @@ class AnalyticsStore:
                 with connection.cursor() as cursor:
                     cursor.execute(
                         "SELECT source_id, source, object_type, object_id, name, category,"
+                        " establishment_kind, municipio, ubicacion, areageo, clee,"
                         " latitude, longitude, geometry_method, tags, source_updated_at,"
                         " retrieved_at, run_id"
                         " FROM analytics.establecimientos"
@@ -103,6 +105,11 @@ class AnalyticsStore:
                         " GROUP BY geometry_method ORDER BY geometry_method"
                     )
                     by_geometry_method = dict(cursor.fetchall())
+                    cursor.execute(
+                        "SELECT source, count(*) FROM analytics.establecimientos"
+                        " GROUP BY source ORDER BY source"
+                    )
+                    by_source = dict(cursor.fetchall())
         except psycopg.Error as error:
             raise StoreError(f"Could not compute stats: {error}") from error
         return {
@@ -113,6 +120,7 @@ class AnalyticsStore:
             "by_geometry_method": {
                 str(key): int(value) for key, value in by_geometry_method.items()
             },
+            "by_source": {str(key): int(value) for key, value in by_source.items()},
         }
 
     def list_runs(self, *, limit: int) -> list[dict[str, Any]]:
@@ -149,6 +157,11 @@ CAFE_COLUMNS = (
     "object_id",
     "name",
     "category",
+    "establishment_kind",
+    "municipio",
+    "ubicacion",
+    "areageo",
+    "clee",
     "latitude",
     "longitude",
     "geometry_method",

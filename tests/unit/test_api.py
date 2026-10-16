@@ -19,6 +19,11 @@ def _row(**overrides: Any) -> dict[str, Any]:
         "object_id": 1,
         "name": "Cafe Central",
         "category": "cafe",
+        "establishment_kind": "cafe",
+        "municipio": None,
+        "ubicacion": None,
+        "areageo": None,
+        "clee": None,
         "latitude": 20.67,
         "longitude": -103.35,
         "geometry_method": "node_coordinates",
@@ -56,12 +61,16 @@ class FakeStore:
         return next((row for row in self.rows if row["source_id"] == source_id), None)
 
     def stats(self) -> dict[str, Any]:
+        by_source: dict[str, int] = {}
+        for row in self.rows:
+            by_source[row["source"]] = by_source.get(row["source"], 0) + 1
         return {
             "total": len(self.rows),
             "with_name": sum(1 for row in self.rows if row["name"] is not None),
             "without_name": sum(1 for row in self.rows if row["name"] is None),
             "by_object_type": {"node": len(self.rows)},
             "by_geometry_method": {"node_coordinates": len(self.rows)},
+            "by_source": by_source,
         }
 
     def list_runs(self, *, limit: int) -> list[dict[str, Any]]:
@@ -165,6 +174,7 @@ def test_stats_summarize_the_analytics_layer() -> None:
         "without_name": 1,
         "by_object_type": {"node": 2},
         "by_geometry_method": {"node_coordinates": 2},
+        "by_source": {"openstreetmap": 2},
     }
 
 
