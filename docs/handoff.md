@@ -55,7 +55,7 @@ uv run ruff format --check . # N archivos ya formateados
 uv run pytest                # 54 passed, 13 skipped (sin BD; integración se omite)
 ```
 
-Con una base migrada por Flyway y variables definidas, la suite completa pasa (67 pruebas: 54 sin BD + 13 de integración; con el PR #28 se suman 5 del stack):
+Con una base migrada por Flyway y variables definidas, la suite completa pasa (67 pruebas: 54 sin BD + 13 de integración; con el PR #28 se suman 5 del stack). **Corrección (issue #59):** el bloque original de este registro apuntaba `ZMG_TEST_DATABASE_URL` a la misma base `db` de desarrollo — eso es justo lo que truncó datos reales en #59. Usa en su lugar la base descartable `test-db` (perfil `test`, ver `docs/database.md`/`docs/install.md`) para `test_load_postgis.py`/`test_api_postgis.py`; solo `test_stack_compose.py` debe apuntar a la base del stack:
 
 ```bash
 export ZMG_TEST_DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:<PUERTO>/zmg_cafes

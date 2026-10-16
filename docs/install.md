@@ -48,16 +48,27 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-Para incluir las pruebas de integración y las del stack, define las variables contra tu instancia:
+Para incluir `tests/integration/test_load_postgis.py` y `test_api_postgis.py` (que truncan sus cuatro schemas antes de cada prueba), usa la base de pruebas descartable, **nunca** la de desarrollo — ver `docs/database.md` e issue #59:
+
+```bash
+TEST_POSTGRES_PORT=0 docker compose --profile test up -d test-db
+TEST_POSTGRES_PORT=0 docker compose --profile test run --rm test-flyway
+TEST_DB_PORT=$(docker compose port test-db 5432 | cut -d: -f2)
+export ZMG_TEST_DATABASE_URL="postgresql://zmg_cafes:zmg_cafes_dev@localhost:${TEST_DB_PORT}/zmg_cafes_test"
+uv run pytest tests/integration/test_load_postgis.py tests/integration/test_api_postgis.py
+docker compose --profile test down test-db
+```
+
+Para `tests/integration/test_stack_compose.py` (que siembra datos reales contra el stack ya levantado, sin truncar nada), usa en cambio la base del propio stack y las URLs del servicio corriendo, en una invocación separada:
 
 ```bash
 export ZMG_TEST_DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:<PUERTO_DE_DB>/zmg_cafes
 export ZMG_STACK_API_URL=http://localhost:8000
 export ZMG_STACK_FRONTEND_URL=http://localhost:8080
-uv run pytest
+uv run pytest tests/integration/test_stack_compose.py
 ```
 
-El `<PUERTO_DE_DB>` se consulta con `docker compose port db 5432` (o `docker port <proyecto>-db-1 5432`).
+El `<PUERTO_DE_DB>` se consulta con `docker compose port db 5432` (o `docker port <proyecto>-db-1 5432`). No combines ambos bloques en una sola corrida de `uv run pytest` sin filtrar archivos: `ZMG_TEST_DATABASE_URL` no puede apuntar a la vez a la base descartable y a la del stack.
 
 ## Registro de validación limpia (2026-10-13)
 

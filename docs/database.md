@@ -79,11 +79,17 @@ SELECT source, count(*) FROM analytics.cafes GROUP BY source; -- openstreetmap |
 
 ## Pruebas de integración
 
-Las pruebas de `tests/integration/` requieren un PostgreSQL/PostGIS accesible y se omiten si no hay URL configurada. Cada prueba limpia los cuatro schemas antes de ejecutarse, así que usa una base de desarrollo, nunca una productiva:
+Las pruebas de `tests/integration/` requieren un PostgreSQL/PostGIS accesible y se omiten si no hay URL configurada. Cada prueba **trunca** los cuatro schemas del proyecto antes de ejecutarse (`tests/integration/conftest.py`), así que `ZMG_TEST_DATABASE_URL` **nunca** debe apuntar a la base de desarrollo (`db`/`DATABASE_URL`) ni a ninguna con datos reales — issue #59 perdió 3,811 registros reales de INEGI DENUE exactamente por esto. El guard en `conftest.py` rechaza truncar si la base conectada se llama literalmente `zmg_cafes` (el nombre por defecto de `db`), pero sigue siendo responsabilidad de quien corre las pruebas usar una base descartable.
+
+Usa el servicio Compose dedicado `test-db` (perfil `test`, sin volumen persistente, base `zmg_cafes_test`), nunca el `db` de desarrollo:
 
 ```bash
-ZMG_TEST_DATABASE_URL=postgresql://zmg_cafes:zmg_cafes_dev@localhost:PUERTO/zmg_cafes \
-  python -m pytest tests/integration
+TEST_POSTGRES_PORT=0 docker compose --profile test up -d test-db
+TEST_POSTGRES_PORT=0 docker compose --profile test run --rm test-flyway
+TEST_DB_PORT=$(docker compose port test-db 5432 | cut -d: -f2)
+export ZMG_TEST_DATABASE_URL="postgresql://zmg_cafes:zmg_cafes_dev@localhost:${TEST_DB_PORT}/zmg_cafes_test"
+python -m pytest tests/integration
+docker compose --profile test down test-db  # descarta los datos de prueba
 ```
 
 El loader también acepta DSN con sufijo de SQLAlchemy (`postgresql+psycopg://...`), como el `DATABASE_URL` de `.env.example`.
