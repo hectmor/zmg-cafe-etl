@@ -76,7 +76,7 @@ Resultado verificado hoy: 13/13 de integración y 5/5 del stack en verde; `pytes
 
 ## 7. Contrato de persistencia (resumen)
 
-Esquemas: `meta.pipeline_runs` (ejecución), `raw.overpass_snapshots` (payload crudo), `staging.cafe_records` (aceptados y rechazados, con razón) y `analytics.cafes` (estado consultable por `source_id`). Geometría `Point, 4326` construida como `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`; nula en rechazos. Desde `V2`, la unicidad de `(run_id, source_id)` en staging aplica solo a aceptados (índice `staging_run_accepted_identity`); los duplicados rechazados quedan auditables. Detalle: `docs/database.md`, `docs/data_dictionary.md`.
+Esquemas: `meta.pipeline_runs` (ejecución), `raw.overpass_snapshots` (payload crudo), `staging.cafe_records` (aceptados y rechazados, con razón) y `analytics.establecimientos` (estado consultable por `source_id`). Geometría `Point, 4326` construida como `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)`; nula en rechazos. Desde `V2`, la unicidad de `(run_id, source_id)` en staging aplica solo a aceptados (índice `staging_run_accepted_identity`); los duplicados rechazados quedan auditables. Detalle: `docs/database.md`, `docs/data_dictionary.md`.
 
 ## 8. Problemas conocidos y limitaciones
 

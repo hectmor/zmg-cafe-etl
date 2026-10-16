@@ -42,7 +42,7 @@ class AnalyticsStore:
         try:
             with self._connect() as connection:
                 with connection.cursor() as cursor:
-                    cursor.execute("SELECT count(*) FROM analytics.cafes")
+                    cursor.execute("SELECT count(*) FROM analytics.establecimientos")
                     row = cursor.fetchone()
                     return int(row[0]) if row else 0
         except psycopg.Error as error:
@@ -56,7 +56,7 @@ class AnalyticsStore:
                         "SELECT source_id, source, object_type, object_id, name, category,"
                         " latitude, longitude, geometry_method, tags, source_updated_at,"
                         " retrieved_at, run_id"
-                        " FROM analytics.cafes"
+                        " FROM analytics.establecimientos"
                         " ORDER BY source_id"
                         " LIMIT %(limit)s OFFSET %(offset)s",
                         {"limit": limit, "offset": offset},
@@ -73,7 +73,7 @@ class AnalyticsStore:
                         "SELECT source_id, source, object_type, object_id, name, category,"
                         " latitude, longitude, geometry_method, tags, source_updated_at,"
                         " retrieved_at, run_id"
-                        " FROM analytics.cafes"
+                        " FROM analytics.establecimientos"
                         " WHERE source_id = %(source_id)s",
                         {"source_id": source_id},
                     )
@@ -90,16 +90,16 @@ class AnalyticsStore:
                         "SELECT count(*),"
                         " count(*) FILTER (WHERE name IS NOT NULL),"
                         " count(*) FILTER (WHERE name IS NULL)"
-                        " FROM analytics.cafes"
+                        " FROM analytics.establecimientos"
                     )
                     total, with_name, without_name = cursor.fetchone()
                     cursor.execute(
-                        "SELECT object_type, count(*) FROM analytics.cafes"
+                        "SELECT object_type, count(*) FROM analytics.establecimientos"
                         " GROUP BY object_type ORDER BY object_type"
                     )
                     by_object_type = dict(cursor.fetchall())
                     cursor.execute(
-                        "SELECT geometry_method, count(*) FROM analytics.cafes"
+                        "SELECT geometry_method, count(*) FROM analytics.establecimientos"
                         " GROUP BY geometry_method ORDER BY geometry_method"
                     )
                     by_geometry_method = dict(cursor.fetchall())

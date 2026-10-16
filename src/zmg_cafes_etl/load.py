@@ -99,7 +99,7 @@ VALUES (
 """
 
 _UPSERT_ANALYTICS = """
-INSERT INTO analytics.cafes (
+INSERT INTO analytics.establecimientos (
     source_id, source, object_type, object_id, name, category,
     establishment_kind, municipio, ubicacion, areageo, clee, latitude, longitude, geometry,
     geometry_method, tags, source_updated_at, retrieved_at, run_id
@@ -134,7 +134,7 @@ RETURNING (xmax = 0) AS inserted
 """
 
 _RETIRE_ABSENT_ANALYTICS = """
-DELETE FROM analytics.cafes
+DELETE FROM analytics.establecimientos
 WHERE source = %(source)s
   AND NOT (source_id = ANY(%(current_source_ids)s::text[]))
 """

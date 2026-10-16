@@ -48,7 +48,7 @@ def clean_database() -> None:
     with psycopg.connect(DATABASE_URL) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                "TRUNCATE analytics.cafes, staging.cafe_records,"
+                "TRUNCATE analytics.establecimientos, staging.cafe_records,"
                 " raw.overpass_snapshots, raw.denue_snapshots, meta.pipeline_runs"
             )
 
@@ -156,7 +156,7 @@ def test_first_load_persists_run_snapshot_staging_and_analytics(
     ) == len(transformation.records)
     assert (
         _scalar(
-            "SELECT count(*) FROM analytics.cafes WHERE run_id = %(run_id)s",
+            "SELECT count(*) FROM analytics.establecimientos WHERE run_id = %(run_id)s",
             {"run_id": extraction.run_id},
         )
         == metrics.accepted
@@ -185,7 +185,7 @@ def test_reloading_the_same_run_updates_without_duplicates(
     ) == len(transformation.records)
     assert (
         _scalar(
-            "SELECT count(*) FROM analytics.cafes",
+            "SELECT count(*) FROM analytics.establecimientos",
             {},
         )
         >= metrics.accepted
@@ -231,7 +231,7 @@ def test_rejected_duplicate_identity_is_stored_and_accepted_identity_is_unique(
     )
     assert (
         _scalar(
-            "SELECT count(*) FROM analytics.cafes WHERE source_id = 'openstreetmap:node:1'",
+            "SELECT count(*) FROM analytics.establecimientos WHERE source_id = 'openstreetmap:node:1'",
             {},
         )
         == 1
@@ -303,7 +303,7 @@ def test_analytics_geometry_is_a_wgs84_point_matching_the_coordinates(
 
     row = _row(
         "SELECT ST_SRID(geometry), ST_X(geometry), ST_Y(geometry), geometry_method"
-        " FROM analytics.cafes WHERE source_id = %(source_id)s",
+        " FROM analytics.establecimientos WHERE source_id = %(source_id)s",
         {"source_id": record.source_id},
     )
 
@@ -416,7 +416,7 @@ def test_second_run_retires_cafe_absent_from_current_run(
 ) -> None:
     transformation_n = _transform(extraction, source_config)
     load_run(extraction, transformation_n, dsn=DATABASE_URL)
-    count_before = _scalar("SELECT count(*) FROM analytics.cafes", {})
+    count_before = _scalar("SELECT count(*) FROM analytics.establecimientos", {})
 
     extraction_n1 = _extract_from_payload(
         _without_cafe_centro(_load_fixture_payload()), tmp_path, source_config, "run_n1"
@@ -427,17 +427,17 @@ def test_second_run_retires_cafe_absent_from_current_run(
 
     assert metrics_n1.retired == 1
     assert metrics_n1.inserted == 0
-    assert _scalar("SELECT count(*) FROM analytics.cafes", {}) == count_before - 1
+    assert _scalar("SELECT count(*) FROM analytics.establecimientos", {}) == count_before - 1
     assert (
         _scalar(
-            "SELECT count(*) FROM analytics.cafes WHERE source_id = %(source_id)s",
+            "SELECT count(*) FROM analytics.establecimientos WHERE source_id = %(source_id)s",
             {"source_id": CAFE_CENTRO_SOURCE_ID},
         )
         == 0
     )
     assert str(
         _scalar(
-            "SELECT DISTINCT run_id FROM analytics.cafes WHERE source = 'openstreetmap'",
+            "SELECT DISTINCT run_id FROM analytics.establecimientos WHERE source = 'openstreetmap'",
             {},
         )
     ) == str(extraction_n1.run_id)
@@ -491,7 +491,7 @@ def test_cafe_rejected_in_next_run_is_retired_and_auditable(
     assert metrics_n1.retired == 1
     assert (
         _scalar(
-            "SELECT count(*) FROM analytics.cafes WHERE source_id = %(source_id)s",
+            "SELECT count(*) FROM analytics.establecimientos WHERE source_id = %(source_id)s",
             {"source_id": CAFE_CENTRO_SOURCE_ID},
         )
         == 0
@@ -519,7 +519,7 @@ def test_retirement_only_affects_the_run_source(
                 {"run_id": other_run_id},
             )
             cursor.execute(
-                "INSERT INTO analytics.cafes ("
+                "INSERT INTO analytics.establecimientos ("
                 " source_id, source, object_type, object_id, name, category,"
                 " latitude, longitude, geometry, geometry_method, tags,"
                 " retrieved_at, run_id"
@@ -539,7 +539,7 @@ def test_retirement_only_affects_the_run_source(
 
     assert (
         _scalar(
-            "SELECT count(*) FROM analytics.cafes WHERE source_id = 'other:node:1'",
+            "SELECT count(*) FROM analytics.establecimientos WHERE source_id = 'other:node:1'",
             {},
         )
         == 1
@@ -554,7 +554,7 @@ def test_run_without_accepted_records_does_not_retire(
 ) -> None:
     transformation_n = _transform(extraction, source_config)
     load_run(extraction, transformation_n, dsn=DATABASE_URL)
-    count_before = _scalar("SELECT count(*) FROM analytics.cafes", {})
+    count_before = _scalar("SELECT count(*) FROM analytics.establecimientos", {})
 
     extraction_n1 = _extract_from_payload({"elements": []}, tmp_path, source_config, "run_n1")
     transformation_n1 = _transform(extraction_n1, source_config)
@@ -563,7 +563,7 @@ def test_run_without_accepted_records_does_not_retire(
         metrics_n1 = load_run(extraction_n1, transformation_n1, dsn=DATABASE_URL)
 
     assert metrics_n1.retired == 0
-    assert _scalar("SELECT count(*) FROM analytics.cafes", {}) == count_before
+    assert _scalar("SELECT count(*) FROM analytics.establecimientos", {}) == count_before
     messages = [record.getMessage() for record in caplog.records]
     assert any("retirement skipped" in message for message in messages)
 

@@ -35,7 +35,7 @@ def clean_database() -> None:
     with psycopg.connect(DATABASE_URL) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                "TRUNCATE analytics.cafes, staging.cafe_records,"
+                "TRUNCATE analytics.establecimientos, staging.cafe_records,"
                 " raw.overpass_snapshots, raw.denue_snapshots, meta.pipeline_runs"
             )
 
