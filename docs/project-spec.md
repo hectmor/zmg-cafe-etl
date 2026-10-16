@@ -26,7 +26,7 @@ Requeridos para un registro aceptado: identidad, categoría, coordenadas válida
 
 Los estados pertenecen al resultado normalizado/staging: `accepted`, `accepted_with_warning` o `rejected`. Un rechazado conserva `rejection_reason` y no entra a analytics. Un registro fuera del área se conserva para auditoría con razón `outside_study_area`, distinto de una coordenada inválida. `accepted_with_warning` permite análisis cuando las invariantes estructurales se cumplen, por ejemplo nombre ausente o punto derivado de `center`.
 
-Un registro aceptado en una corrida anterior que en la corrida actual está ausente o rechazado se retira de `analytics.cafes` (ADR-006); `staging.cafe_records` y `raw.overpass_snapshots` conservan su historial completo.
+Un registro aceptado en una corrida anterior que en la corrida actual está ausente o rechazado se retira de `analytics.establecimientos` (ADR-006); `staging.cafe_records` y `raw.overpass_snapshots` conservan su historial completo.
 
 ## Fases de trabajo
 

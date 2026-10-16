@@ -26,6 +26,6 @@ def truncate_project_tables(database_url: str) -> None:
                     "database (see docs/database.md)."
                 )
             cursor.execute(
-                "TRUNCATE analytics.cafes, staging.cafe_records,"
+                "TRUNCATE analytics.establecimientos, staging.cafe_records,"
                 " raw.overpass_snapshots, raw.denue_snapshots, meta.pipeline_runs"
             )

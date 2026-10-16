@@ -54,12 +54,12 @@ Compara conteos y un fingerprint de contenido antes/después (no solo el total d
 
 ```sql
 SELECT * FROM (
-  SELECT 'analytics.cafes' AS k, count(*)::text AS v FROM analytics.cafes
+  SELECT 'analytics.establecimientos' AS k, count(*)::text AS v FROM analytics.establecimientos
   UNION ALL SELECT 'staging.cafe_records', count(*)::text FROM staging.cafe_records
   UNION ALL SELECT 'raw.overpass_snapshots', count(*)::text FROM raw.overpass_snapshots
   UNION ALL SELECT 'meta.pipeline_runs', count(*)::text FROM meta.pipeline_runs
   UNION ALL SELECT 'meta.flyway_schema_history', count(*)::text FROM meta.flyway_schema_history
-  UNION ALL SELECT 'analytics.cafes.fingerprint', md5(coalesce(string_agg(source_id || '|' || ST_AsEWKT(geometry) || '|' || coalesce(name, ''), ',' ORDER BY source_id), '')) FROM analytics.cafes
+  UNION ALL SELECT 'analytics.establecimientos.fingerprint', md5(coalesce(string_agg(source_id || '|' || ST_AsEWKT(geometry) || '|' || coalesce(name, ''), ',' ORDER BY source_id), '')) FROM analytics.establecimientos
 ) t ORDER BY k;
 ```
 
@@ -102,7 +102,7 @@ docker compose -p zmg-cafe-backup-test down -v --rmi local
 
 Ejecutado end-to-end contra el stack real (`zmg-cafe-etl`, 4 cafés reales de fixture, migraciones V1-V3) y un proyecto aislado (`zmg-cafe-backup-test`):
 
-- Conteos/fingerprint capturados antes de tocar nada: `analytics.cafes=4`, fingerprint `8210205ec92f671784d45f50e82266fe`.
+- Conteos/fingerprint capturados antes de tocar nada: `analytics.cafes=4` (nombre de la tabla en esa fecha; renombrada a `analytics.establecimientos` por el issue #62), fingerprint `8210205ec92f671784d45f50e82266fe`.
 - `pg_dump` del stack real validado con `pg_restore --list`: solo los schemas `meta`, `raw`, `staging`, `analytics` y sus `TABLE DATA`, sin PostGIS/tiger/topology.
 - Ciclo completo en el proyecto aislado (`zmg-cafe-backup-test`): `up` → `migrate` (V1-V3) → `etl` (4 aceptados) → `pg_dump` → verificación de que solo existían recursos del proyecto de prueba → `down -v` → `up` limpio → `pg_restore` sin `--clean` → diff de conteos vacío → `flyway info`/`migrate` confirma "up to date" en V3 → `pg_restore --clean --if-exists` sobre la misma base → diff de conteos vacío.
 - El dump del stack **real** se restauró también en el proyecto aislado y coincidió en conteos y fingerprint con el estado real capturado al inicio.
