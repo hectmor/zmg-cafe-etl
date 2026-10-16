@@ -9,6 +9,7 @@ from typing import Any
 class GeometryMethod(StrEnum):
     NODE_COORDINATES = "node_coordinates"
     OVERPASS_CENTER = "overpass_center"
+    DENUE_COORDINATES = "denue_coordinates"
 
 
 class ValidationStatus(StrEnum):
@@ -39,6 +40,9 @@ class NormalizedRecord:
     source_id: str | None
     name: str | None
     category: str
+    # Derived heuristic subtype ("cafe"/"neveria"/"refresqueria"/"otro"); not
+    # an official INEGI/OSM attribute, see classify.py.
+    establishment_kind: str
     latitude: float | None
     longitude: float | None
     geometry: dict[str, Any] | None
@@ -49,6 +53,16 @@ class NormalizedRecord:
     run_id: str
     validation_status: ValidationStatus
     rejection_reason: RejectionReason | None
+    # Official municipality for the matching INEGI DENUE query batch (never
+    # inferred from free text like `Ubicacion`); always None for OpenStreetMap,
+    # which does not provide municipio.
+    municipio: str | None = None
+    # Verbatim INEGI DENUE fields (`Ubicacion`, `AreaGeo`, `CLEE`), already
+    # complete on the raw record; never derived/parsed. Always None for
+    # OpenStreetMap, which does not provide them.
+    ubicacion: str | None = None
+    areageo: str | None = None
+    clee: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

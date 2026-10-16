@@ -42,3 +42,28 @@ def test_read_geometry_uses_overpass_center_for_relations() -> None:
         GeometryMethod.OVERPASS_CENTER,
         None,
     )
+
+
+def test_read_identity_accepts_economic_unit_like_a_node() -> None:
+    assert read_identity({"type": "economic_unit", "id": 7026403001}) == (
+        "economic_unit",
+        7026403001,
+        None,
+    )
+
+
+def test_read_geometry_reads_denue_latitud_longitud_fields() -> None:
+    latitude, longitude, method, reason = read_geometry(
+        {"Latitud": "20.676195", "Longitud": "-103.347190"}, "economic_unit"
+    )
+
+    assert (latitude, longitude, method, reason) == (
+        20.676195,
+        -103.34719,
+        GeometryMethod.DENUE_COORDINATES,
+        None,
+    )
+
+
+def test_read_geometry_rejects_economic_unit_without_coordinates() -> None:
+    assert read_geometry({}, "economic_unit")[3] is RejectionReason.MISSING_COORDINATES

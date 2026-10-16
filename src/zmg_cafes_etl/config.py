@@ -29,14 +29,27 @@ class BoundingBox:
 
 
 @dataclass(frozen=True, slots=True)
+class Municipality:
+    """One ZMG municipality as addressed by the INEGI DENUE API."""
+
+    name: str
+    entidad: str
+    municipio: str
+
+
+@dataclass(frozen=True, slots=True)
 class SourceConfig:
     name: str
+    access_method: str
     endpoint: str
-    query_template: str
     timeout_seconds: float
     max_retries: int
     retry_backoff_seconds: float
     study_area: BoundingBox
+    query_template: str | None = None
+    scian_class: str | None = None
+    page_size: int | None = None
+    municipalities: tuple[Municipality, ...] = ()
 
 
 def load_source_config(config_path: Path, source_name: str = "openstreetmap") -> SourceConfig:
@@ -66,14 +79,27 @@ def load_source_config(config_path: Path, source_name: str = "openstreetmap") ->
         max_retries = int(source_data["max_retries"])
         retry_backoff_seconds = float(source_data["retry_backoff_seconds"])
         _validate_request_settings(timeout_seconds, max_retries, retry_backoff_seconds)
+        access_method = str(source_data.get("access_method", "overpass_api"))
+
+        if access_method == "inegi_denue_api":
+            query_template = None
+            scian_class, page_size, municipalities = _load_denue_settings(source_data)
+        else:
+            query_template = source_data["query_template"]
+            scian_class, page_size, municipalities = None, None, ()
+
         return SourceConfig(
             name=source_data["name"],
+            access_method=access_method,
             endpoint=source_data["endpoint"],
-            query_template=source_data["query_template"],
             timeout_seconds=timeout_seconds,
             max_retries=max_retries,
             retry_backoff_seconds=retry_backoff_seconds,
             study_area=bbox,
+            query_template=query_template,
+            scian_class=scian_class,
+            page_size=page_size,
+            municipalities=municipalities,
         )
     except ConfigurationError:
         raise
@@ -81,6 +107,26 @@ def load_source_config(config_path: Path, source_name: str = "openstreetmap") ->
         raise ConfigurationError(
             f"Invalid or missing configuration for source: {source_name}"
         ) from error
+
+
+def _load_denue_settings(
+    source_data: dict[str, Any],
+) -> tuple[str, int, tuple[Municipality, ...]]:
+    scian_class = str(source_data["scian_class"])
+    page_size = int(source_data["page_size"])
+    if page_size <= 0:
+        raise ConfigurationError("DENUE page size must be a positive integer")
+    municipalities = tuple(
+        Municipality(
+            name=str(item["name"]),
+            entidad=str(item["entidad"]),
+            municipio=str(item["municipio"]),
+        )
+        for item in source_data["municipalities"]
+    )
+    if not municipalities:
+        raise ConfigurationError("DENUE source requires at least one municipality")
+    return scian_class, page_size, municipalities
 
 
 def _validate_bbox(bbox: BoundingBox) -> None:
@@ -104,5 +150,7 @@ def _validate_request_settings(
 def render_query(source_config: SourceConfig) -> str:
     """Render the configured source query for the configured study area."""
 
+    if source_config.query_template is None:
+        raise ConfigurationError(f"Source '{source_config.name}' has no query template to render")
     values: dict[str, Any] = source_config.study_area.as_format_values()
     return source_config.query_template.format(**values)

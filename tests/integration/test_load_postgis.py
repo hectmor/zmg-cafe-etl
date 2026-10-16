@@ -49,7 +49,7 @@ def clean_database() -> None:
         with connection.cursor() as cursor:
             cursor.execute(
                 "TRUNCATE analytics.cafes, staging.cafe_records,"
-                " raw.overpass_snapshots, meta.pipeline_runs"
+                " raw.overpass_snapshots, raw.denue_snapshots, meta.pipeline_runs"
             )
 
 
@@ -248,6 +248,7 @@ def test_failed_load_leaves_no_completed_run_or_partial_results(
         source_id="openstreetmap:node:999",
         name=None,
         category="cafe",
+        establishment_kind="cafe",
         latitude=20.67,
         longitude=-103.35,
         geometry={"type": "Point", "coordinates": [-103.35, 20.67]},
@@ -356,6 +357,7 @@ def test_load_run_logs_failure_with_error_type_on_a_broken_record(
         source_id="openstreetmap:node:999",
         name=None,
         category="cafe",
+        establishment_kind="cafe",
         latitude=20.67,
         longitude=-103.35,
         geometry={"type": "Point", "coordinates": [-103.35, 20.67]},

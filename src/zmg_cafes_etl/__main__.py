@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .config import ConfigurationError, load_source_config
 from .extract import ExtractionError, extract_live, extract_offline
+from .extract_denue import extract_live_denue, extract_offline_denue
 from .load import LoadError, load_run
 from .transform import transform_payload
 
@@ -32,6 +33,17 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _resolve_denue_token() -> str:
+    """Read the DENUE token from the environment; never logged or echoed."""
+
+    token = os.environ.get("INEGI_DENUE_TOKEN")
+    if not token:
+        raise ExtractionError(
+            "INEGI_DENUE_TOKEN environment variable is required for --live --source inegi_denue"
+        )
+    return token
+
+
 def configure_logging() -> None:
     """Attach a single stream handler for the CLI; libraries never do this."""
 
@@ -48,7 +60,14 @@ def main() -> int:
     logger.info("pipeline started source=%s mode=%s", args.source, mode)
     try:
         source_config = load_source_config(args.config, args.source)
-        if args.offline:
+        if source_config.access_method == "inegi_denue_api":
+            if args.offline:
+                result = extract_offline_denue(args.offline, source_config, args.raw_root)
+            else:
+                result = extract_live_denue(
+                    source_config, args.raw_root, token=_resolve_denue_token()
+                )
+        elif args.offline:
             result = extract_offline(args.offline, source_config, args.raw_root)
         else:
             result = extract_live(source_config, args.raw_root)
