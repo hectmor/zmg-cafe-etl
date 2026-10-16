@@ -15,6 +15,11 @@ class Cafe(BaseModel):
     object_id: int
     name: str | None
     category: str
+    establishment_kind: str
+    municipio: str | None
+    ubicacion: str | None
+    areageo: str | None
+    clee: str | None
     latitude: float
     longitude: float
     geometry_method: str
@@ -37,6 +42,7 @@ class Stats(BaseModel):
     without_name: int
     by_object_type: dict[str, int]
     by_geometry_method: dict[str, int]
+    by_source: dict[str, int]
 
 
 class Health(BaseModel):
