@@ -41,11 +41,11 @@ it instead of duplicating it.
 flowchart LR
     OSM["OpenStreetMap\n(Overpass API)"] --> EX["extract.py\nextract_denue.py"]
     DENUE["INEGI DENUE API"] --> EX
-    EX -->|generic element\n{type, id, tags}| TR["transform.py\nvalidate + classify"]
-    TR -->|accepted| LD["load.py\nupsert, one transaction"]
-    TR -->|rejected| ST[("staging.cafe_records\naudit trail")]
+    EX -->|"generic element: type, id, tags"| TR["transform.py\nvalidate + classify"]
+    TR -->|"accepted"| LD["load.py\nupsert, one transaction"]
+    TR -->|"rejected"| ST[("staging.cafe_records\naudit trail")]
     LD --> PG[("PostgreSQL + PostGIS\nanalytics.establecimientos")]
-    PG -->|GeoJSON| API["FastAPI"]
+    PG -->|"GeoJSON"| API["FastAPI"]
     API --> MAP["Leaflet map"]
 ```
 
